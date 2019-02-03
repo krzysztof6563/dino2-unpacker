@@ -2,12 +2,16 @@
 #include <fstream>
 #include <string.h>
 #include "unpacker/itemunpacker.h"
+#include "unpacker/doorunpacker.h"
+
 
 using namespace std;
 
 Unpacker *getUnpackerByFilename(std::string filename) {
     if (filename == "ITEM.DAT") {
         return new ItemUnpacker(filename);
+    } else if (filename.find("DOOR") != std::string::npos) {
+        return new DoorUnpacker(filename);
     }
     return nullptr;
 }
@@ -29,7 +33,7 @@ Unpacker *getUnpackerByFilename(std::string filename) {
 int main(int argc, char *argv[]){
     if (argc > 1){
         for (int i=1; i<argc; i++) {
-            std::string filename(argv[1]);
+            std::string filename(argv[i]);
             Unpacker *u = getUnpackerByFilename(filename);
             if (u != nullptr) {
                 u->unpack();

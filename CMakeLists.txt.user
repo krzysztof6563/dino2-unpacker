@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 4.8.1, 2019-02-01T23:41:04. -->
+<!-- Written by QtCreator 4.8.1, 2019-02-02T22:41:04. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -347,8 +347,7 @@
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">CMakeProjectManager.CMakeRunConfiguration.dino2-unpacker
 /media/DATA/Projects/dino2-unpacker/</value>
-    <value type="QString" key="RunConfiguration.Arguments">ITEM.DAT
-</value>
+    <value type="QString" key="RunConfiguration.Arguments">*</value>
     <value type="uint" key="RunConfiguration.QmlDebugServerPort">3768</value>
     <value type="bool" key="RunConfiguration.UseCppDebugger">false</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
