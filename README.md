@@ -1,2 +1,6 @@
-# dino2-item-unpacker
-Utility for extracting from ITEM.DAT from Dino Crisis 2
+# dino2-unpacker
+Utility for extracting data from Dino Crisis 2
+
+Supported files:
+
+ITEM.DAT
