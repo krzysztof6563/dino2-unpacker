@@ -9,6 +9,15 @@ DoorUnpacker::DoorUnpacker(std::string filename) : Unpacker (filename)
     p = new PaletteConverter(PALETTE_SIZE);
 }
 
+/**
+ * @brief DoorUnpacker::unpack, extracts files from DOOR*.DAT file
+ *
+ * Possible files to extract:
+ * - wave files (door sounds)
+ * - texture of door
+ * - 3d model of door (?)
+ * @return
+ */
 int DoorUnpacker::unpack()
 {
     if (inFile.is_open()) {
@@ -39,12 +48,24 @@ int DoorUnpacker::unpack()
             }
         }
         inFile.close();
+        dechunker->dechunk();
+        dechunker->saveChunksToDisk();
     } else {
         std::cout << "Error opening  " << filename;
     }
     return 0;
 }
 
+/**
+ * @brief DoorUnpacker::extractWAV, extract embeded wave file
+ *
+ * Wave structure (simplified):
+ *
+ * RIFF header + file size (little endian) + rest of file
+ * @param inFile
+ * @param outFilename
+ * @param tmp RIFF header
+ */
 void DoorUnpacker::extractWAV(std::ifstream *inFile, std::string outFilename, char *tmp)
 {
     char WAVE_SIZE[4];
@@ -53,8 +74,6 @@ void DoorUnpacker::extractWAV(std::ifstream *inFile, std::string outFilename, ch
                       (unsigned char) WAVE_SIZE[2] << 16 |
                       (unsigned char) WAVE_SIZE[1] << 8 |
                       (unsigned char) WAVE_SIZE[0] << 0 );
-//            WAVE_FILE_SIZE = 36044+8;
-//            uint32_t __builtin_bswap32 (uint32_t WAVE_FILE_SIZE);
     std::cout << "Wave size: " << WAVE_FILE_SIZE << " bytes" << std::endl;
     WAVE_FILE = new char[WAVE_FILE_SIZE];
     for (int i = 0; i < 4; i++) {

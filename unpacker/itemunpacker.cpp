@@ -42,7 +42,6 @@ int ItemUnpacker::unpack()
             outFilePalette.close();
             imageNumber++;
         }
-        std::cout << std::endl << "Number of converted images: " << imageNumber << std::endl;
         inFile.close();
 
     } else {

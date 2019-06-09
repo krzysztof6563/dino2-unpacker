@@ -9,5 +9,8 @@ file(GLOB dino2-unpacker_SRC
     "unpacker/*.cpp"
 )
 
+set (CMAKE_CXX_FLAGS "-std=c++17")
+link_libraries(stdc++fs)
+
 project(dino2-unpacker)
 add_executable(${PROJECT_NAME} ${dino2-unpacker_SRC})

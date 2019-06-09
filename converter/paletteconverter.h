@@ -4,6 +4,9 @@
 #include "converter.h"
 #include <stdint.h>
 
+/**
+ * @brief The PaletteConverter class, converts palettes used across all files in DC2 from rgb555 to rgb888
+ */
 class PaletteConverter : public Converter {
 public:
     PaletteConverter(int paletteSize);
@@ -23,8 +26,8 @@ private:
     int PALETTE_SIZE;
     int CONVERTED_PALETTE_SIZE;
 
-    char *palette;
-    char *newPalette;
+    char *palette; //!Pointer to array containing palette to be converted
+    char *newPalette; //!Pointer to array used to store coverted palette
     uint8_t red5, green5, blue5, green25;
     uint8_t red8, green8, blue8;
 

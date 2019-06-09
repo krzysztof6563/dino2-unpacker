@@ -4,7 +4,11 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include "../dechunker.h"
 
+/**
+ * @brief The Unpacker class, virutal class for all unpackers
+ */
 class Unpacker {
 public:
     Unpacker(std::string filename);
@@ -61,6 +65,8 @@ protected:
     std::ifstream inFile;
     std::ofstream outFile;
     std::ofstream outFilePalette;
+
+    Dechunker *dechunker;
 };
 
 #endif // UNPACKER_H

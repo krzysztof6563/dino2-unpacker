@@ -3,7 +3,10 @@
 #include <string.h>
 #include "unpacker/itemunpacker.h"
 #include "unpacker/doorunpacker.h"
-
+#include "unpacker/dechunkerunpacker.h"
+#include "unpacker/armorunpacker.h"
+#include "unpacker/pxlunpacker.h"
+#include "dechunker.h"
 
 using namespace std;
 
@@ -12,8 +15,18 @@ Unpacker *getUnpackerByFilename(std::string filename) {
         return new ItemUnpacker(filename);
     } else if (filename.find("DOOR") != std::string::npos) {
         return new DoorUnpacker(filename);
+    } else if (filename.find("ARMOR") != std::string::npos ||
+               filename.find("CAPLOGO.DAT") != std::string::npos ||
+               filename.find(".TEX") != std::string::npos ||
+               filename.find("MAP.BIN") != std::string::npos ||
+               filename.find("MS_") != std::string::npos ) {
+        return new ArmorUnpacker(filename);
+    } else if (filename.find(".PXL") != std::string::npos) {
+        return new PXLUnpacker(filename);
+    } else {
+        return new DechunkerUnpacker(filename);
     }
-    return nullptr;
+//    return nullptr;
 }
 
 //void reshapeImage(char buffer[]) {
@@ -37,6 +50,7 @@ int main(int argc, char *argv[]){
             Unpacker *u = getUnpackerByFilename(filename);
             if (u != nullptr) {
                 u->unpack();
+                std::cout << "Unpacked: " << filename << std::endl;
             } else {
                 std::cout << "File type not supported" << std::endl;
             }

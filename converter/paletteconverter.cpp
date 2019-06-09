@@ -10,6 +10,10 @@ PaletteConverter::~PaletteConverter()
 
 }
 
+/**
+ * @brief PaletteConverter::convert Cenverts rgb555 palette to rgb888
+ * @return void
+ */
 int PaletteConverter::convert()
 {
     int newI = 0;

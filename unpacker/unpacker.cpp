@@ -3,7 +3,8 @@
 Unpacker::Unpacker(std::string filename)
 {
     this->filename = filename;
-    this->inFile.open(filename.c_str(), std::fstream::binary);
+    this->inFile.open(filename.c_str(), std::ios::binary);
+    dechunker = new Dechunker(filename);
 }
 
 Unpacker::~Unpacker()
@@ -11,6 +12,7 @@ Unpacker::~Unpacker()
     delete[] buffer;
     delete[] palette;
     delete[] newPalette;
+    delete dechunker;
 }
 
 void Unpacker::allocateVariables()
