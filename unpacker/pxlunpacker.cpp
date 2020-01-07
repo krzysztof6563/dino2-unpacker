@@ -1,4 +1,4 @@
-#include "pxlunpacker.h"
+    #include "pxlunpacker.h"
 
 PXLUnpacker::PXLUnpacker(std::string filename) : Unpacker (filename)
 {
@@ -41,6 +41,8 @@ int PXLUnpacker::unpack() {
             outFile.write(reinterpret_cast<const char *>(&red8), sizeof (red8));
             outFile.write(reinterpret_cast<const char *>(&green8), sizeof (green8));
             outFile.write(reinterpret_cast<const char *>(&blue8), sizeof (blue8));
+
+
             pixelNumber++;
         }
         std::cout << "THE END" << std::endl;

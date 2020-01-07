@@ -37,6 +37,7 @@ int PaletteConverter::convert()
         newPalette[newI+2] = blue8;
         newI += 3;
     }
+    return 1;
 }
 
 char *PaletteConverter::getNewPalette() const

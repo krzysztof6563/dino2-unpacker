@@ -1,6 +1,8 @@
 #ifndef ITEMUNPACKER_H
 #define ITEMUNPACKER_H
 
+#include <cstring>
+//#include <Magick++.h>
 #include "unpacker.h"
 #include "../converter/paletteconverter.h"
 
