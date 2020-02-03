@@ -18,30 +18,6 @@ int ItemUnpacker::unpack()
 {
     if (inFile.is_open()) {
         std::cout << "File" << filename << " opened." << std::endl;
-
-//        while (!inFile.eof()) {
-//            char output[255];
-//            sprintf(output, "%s%04d.data", filename.c_str(), imageNumber);
-//            outFile.open(output, std::fstream::binary);
-//            printf("Creating %s\n", output);
-//            sprintf(output, "%s%04d.data.pal", filename.c_str(), imageNumber);
-//            outFilePalette.open(output, std::fstream::binary);
-//            printf("Creating %s\n", output);
-//            //Reading from files
-//            inFile.read(buffer, BUFFER_SIZE);
-//            inFile.read(palette, PALETTE_SIZE);
-//            //converting palette to rgb888
-//            p->setPalette(palette);
-//            p->setNewPalette(newPalette);
-//            p->convert();
-//            //writing to new files
-//            outFile.write(buffer, BUFFER_SIZE);
-//            outFilePalette.write(newPalette, CONVERTED_PALETTE_SIZE);
-//            //closing files
-//            outFile.close();
-//            outFilePalette.close();
-//            imageNumber++;
-//        }
         dechunker->dechunk();
         size_t total = dechunker->getNumberOfChunks();
         int imageNumber = 0;

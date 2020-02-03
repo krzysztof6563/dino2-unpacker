@@ -4,6 +4,7 @@
 #include "unpacker.h"
 #include "../converter/paletteconverter.h"
 #include <string>
+#include <map>
 #include "../files/WaveFile.h"
 
 /**
@@ -17,8 +18,15 @@ public:
     ~DoorUnpacker();
 
     int unpack();
-    void extractWAV(std::ifstream *inFile, std::string outFilename, WaveFile* waveFile);
+    bool conv = 0;
+    int bytesToSkipInPalette = 0;
 private:
+    void extractWAV(std::ifstream *inFile, std::string outFilename, WaveFile* waveFile);
+    int mapBytesToChunks(int bytes);
+    void dumpUnknownFile(int restSize);
+    void dumpRemainingFile(int FILESIZE, int chunks);
+
+
     int DUMMY_HEADER_SIZE = 0xA00; //!< Size of dummy header at the beginnig of file
     uint32_t WAVE_FILE_SIZE; //!< Size of embeded wave file
     int MODEL_SIZE; //!< Size of embeded 3d model
@@ -30,14 +38,7 @@ private:
     char oneByteBuffer;
     PaletteConverter *p;
     std::vector<WaveFile*> WAVE_FILES;
-
-    /*
-     *  Number of texture chunks
-     *  Typical: 17
-     *  Possible: 10, 18
-     *
-     *
-     */
+    const char *RIFF_HEADER = "RIFF";
 };
 
 #endif // DOORUNPACKER_H
