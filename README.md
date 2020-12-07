@@ -3,5 +3,7 @@ Utility for extracting data from Dino Crisis 2
 
 Supported files:
 
-ITEM.DAT
-DOOR*.DAT
+- ITEM.DAT
+- DOOR*.DAT
+- WP*.DAT
+- *.PXL
