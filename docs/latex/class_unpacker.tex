@@ -1,0 +1,333 @@
+\hypertarget{class_unpacker}{}\doxysection{Unpacker Class Reference}
+\label{class_unpacker}\index{Unpacker@{Unpacker}}
+
+
+The \mbox{\hyperlink{class_unpacker}{Unpacker}} class, virutal class for all unpackers.  
+
+
+
+
+{\ttfamily \#include $<$unpacker.\+h$>$}
+
+Inheritance diagram for Unpacker\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=1.647059cm]{class_unpacker}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{class_unpacker_a5ae82db1a9416e00ce67201707ef4a21}{Unpacker}} (std\+::string \mbox{\hyperlink{class_unpacker_ae684424d4de033cd94dc84bc442256fc}{filename}})
+\item 
+virtual \mbox{\hyperlink{class_unpacker_ac2ca3f3a56538c285ac189de55a9520f}{$\sim$\+Unpacker}} ()
+\item 
+virtual int \mbox{\hyperlink{class_unpacker_aa3b3b76b81552a0d7ad2aebf2ef42fdb}{unpack}} ()=0
+\item 
+virtual void \mbox{\hyperlink{class_unpacker_a1e0707148500851fa312540763678634}{allocate\+Variables}} ()
+\item 
+int \mbox{\hyperlink{class_unpacker_ad18a5a4d9efc8a0a5018d5a298a6607b}{get\+B\+U\+F\+F\+E\+R\+\_\+\+S\+I\+ZE}} () const
+\item 
+void \mbox{\hyperlink{class_unpacker_ab5fbad09e12c7509aab064d2cb62535c}{set\+B\+U\+F\+F\+E\+R\+\_\+\+S\+I\+ZE}} (int value)
+\item 
+int \mbox{\hyperlink{class_unpacker_a1a7b784e50814f0a6f04ab198332772e}{get\+P\+A\+L\+E\+T\+T\+E\+\_\+\+S\+I\+ZE}} () const
+\item 
+void \mbox{\hyperlink{class_unpacker_afaa66ecd2d8ecc627062f8494c0e686d}{set\+P\+A\+L\+E\+T\+T\+E\+\_\+\+S\+I\+ZE}} (int value)
+\item 
+int \mbox{\hyperlink{class_unpacker_af14a32e3d2bed82929da79c8db959128}{get\+C\+O\+N\+V\+E\+R\+T\+E\+D\+\_\+\+P\+A\+L\+E\+T\+T\+E\+\_\+\+S\+I\+ZE}} () const
+\item 
+void \mbox{\hyperlink{class_unpacker_a970605e6443d21d5006081fc9c8d111a}{set\+C\+O\+N\+V\+E\+R\+T\+E\+D\+\_\+\+P\+A\+L\+E\+T\+T\+E\+\_\+\+S\+I\+ZE}} (int value)
+\item 
+int \mbox{\hyperlink{class_unpacker_a04513309909f012c958ca10f1ae36f45}{get\+T\+I\+L\+E\+\_\+\+S\+I\+ZE}} () const
+\item 
+void \mbox{\hyperlink{class_unpacker_a9367e8c773629d94ea260112c5219ecc}{set\+T\+I\+L\+E\+\_\+\+S\+I\+ZE}} (int value)
+\item 
+int \mbox{\hyperlink{class_unpacker_a50d6ca8b688425ff3247e78927764c36}{get\+T\+I\+L\+E\+\_\+\+W\+I\+D\+TH}} () const
+\item 
+void \mbox{\hyperlink{class_unpacker_ac35380561edbc427ad27aeef84e382a8}{set\+T\+I\+L\+E\+\_\+\+W\+I\+D\+TH}} (int value)
+\item 
+char $\ast$ \mbox{\hyperlink{class_unpacker_a3e93c9ce02f7f27f611326dbfb98a722}{get\+Buffer}} () const
+\item 
+void \mbox{\hyperlink{class_unpacker_a09396a05804e82483888cb13e957b73f}{set\+Buffer}} (char $\ast$value)
+\item 
+char $\ast$ \mbox{\hyperlink{class_unpacker_abdeebef550cb3fa6ea78b8c8b1e71d40}{get\+Palette}} () const
+\item 
+char $\ast$ \mbox{\hyperlink{class_unpacker_aac7924bec881ea6b9949f5a3e62ffa3e}{get\+New\+Palette}} () const
+\item 
+void \mbox{\hyperlink{class_unpacker_a26cdca2f5ffa3c2554be42421d89bc2d}{set\+New\+Palette}} (char $\ast$value)
+\item 
+std\+::ifstream \mbox{\hyperlink{class_unpacker_aca57aace3e1ed73c008daf2f8ed946c0}{get\+In\+File}} () const
+\item 
+void \mbox{\hyperlink{class_unpacker_a90915b2dce5ad0d6356cdde032fcdb42}{set\+In\+File}} (const std\+::ifstream \&value)
+\item 
+std\+::ofstream \mbox{\hyperlink{class_unpacker_ab9703cdabf46e9beff9ff24dc8ec025a}{get\+Out\+File}} () const
+\item 
+void \mbox{\hyperlink{class_unpacker_ad1c470c92b12dbb88efcedbedbe390d4}{set\+Out\+File}} (const std\+::ofstream \&value)
+\item 
+std\+::ofstream \mbox{\hyperlink{class_unpacker_adf99f5b45d26bb9ecfb154cbc25d7cbd}{get\+Out\+File\+Palette}} () const
+\item 
+void \mbox{\hyperlink{class_unpacker_abe0159f65ad0c832a592d02ffb0cd06d}{set\+Out\+File\+Palette}} (const std\+::ofstream \&value)
+\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+int \mbox{\hyperlink{class_unpacker_a1d9c8beff6faf4d9cbb8a348d3c3a9ff}{B\+U\+F\+F\+E\+R\+\_\+\+S\+I\+ZE}}
+\item 
+int \mbox{\hyperlink{class_unpacker_a68482f78aa85f71d6fe694922e11fba7}{P\+A\+L\+E\+T\+T\+E\+\_\+\+S\+I\+ZE}}
+\item 
+int \mbox{\hyperlink{class_unpacker_a44c5be249cac6b7011daa04c191b2537}{C\+O\+N\+V\+E\+R\+T\+E\+D\+\_\+\+P\+A\+L\+E\+T\+T\+E\+\_\+\+S\+I\+ZE}}
+\item 
+std\+::string \mbox{\hyperlink{class_unpacker_ae684424d4de033cd94dc84bc442256fc}{filename}}
+\item 
+char $\ast$ \mbox{\hyperlink{class_unpacker_ac029f03154662fdc3db3f8309ff806b8}{buffer}}
+\item 
+char $\ast$ \mbox{\hyperlink{class_unpacker_a7ae41b83dc6ea708df77a08388cec079}{palette}}
+\item 
+char $\ast$ \mbox{\hyperlink{class_unpacker_a3d05285e188cced5a48845d49d0779f1}{new\+Palette}}
+\item 
+std\+::ifstream \mbox{\hyperlink{class_unpacker_aa74c4e7aaa49c0effe2cd6e79398642f}{in\+File}}
+\item 
+std\+::ofstream \mbox{\hyperlink{class_unpacker_af4bd64fdcc550d2e3948fb1c56387a09}{out\+File}}
+\item 
+std\+::ofstream \mbox{\hyperlink{class_unpacker_af43a16bb4f1ac7365d1a3a95949d1b06}{out\+File\+Palette}}
+\item 
+\mbox{\hyperlink{class_dechunker}{Dechunker}} $\ast$ \mbox{\hyperlink{class_unpacker_a2a92ca86cbbe7e53632996da75c1356c}{dechunker}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+The \mbox{\hyperlink{class_unpacker}{Unpacker}} class, virutal class for all unpackers. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{class_unpacker_a5ae82db1a9416e00ce67201707ef4a21}\label{class_unpacker_a5ae82db1a9416e00ce67201707ef4a21}} 
+\index{Unpacker@{Unpacker}!Unpacker@{Unpacker}}
+\index{Unpacker@{Unpacker}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{Unpacker()}{Unpacker()}}
+{\footnotesize\ttfamily Unpacker\+::\+Unpacker (\begin{DoxyParamCaption}\item[{std\+::string}]{filename }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{class_unpacker_ac2ca3f3a56538c285ac189de55a9520f}\label{class_unpacker_ac2ca3f3a56538c285ac189de55a9520f}} 
+\index{Unpacker@{Unpacker}!````~Unpacker@{$\sim$Unpacker}}
+\index{````~Unpacker@{$\sim$Unpacker}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{$\sim$Unpacker()}{~Unpacker()}}
+{\footnotesize\ttfamily Unpacker\+::$\sim$\+Unpacker (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [virtual]}}
+
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{class_unpacker_a1e0707148500851fa312540763678634}\label{class_unpacker_a1e0707148500851fa312540763678634}} 
+\index{Unpacker@{Unpacker}!allocateVariables@{allocateVariables}}
+\index{allocateVariables@{allocateVariables}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{allocateVariables()}{allocateVariables()}}
+{\footnotesize\ttfamily void Unpacker\+::allocate\+Variables (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [virtual]}}
+
+\mbox{\Hypertarget{class_unpacker_a3e93c9ce02f7f27f611326dbfb98a722}\label{class_unpacker_a3e93c9ce02f7f27f611326dbfb98a722}} 
+\index{Unpacker@{Unpacker}!getBuffer@{getBuffer}}
+\index{getBuffer@{getBuffer}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{getBuffer()}{getBuffer()}}
+{\footnotesize\ttfamily char $\ast$ Unpacker\+::get\+Buffer (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{class_unpacker_ad18a5a4d9efc8a0a5018d5a298a6607b}\label{class_unpacker_ad18a5a4d9efc8a0a5018d5a298a6607b}} 
+\index{Unpacker@{Unpacker}!getBUFFER\_SIZE@{getBUFFER\_SIZE}}
+\index{getBUFFER\_SIZE@{getBUFFER\_SIZE}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{getBUFFER\_SIZE()}{getBUFFER\_SIZE()}}
+{\footnotesize\ttfamily int Unpacker\+::get\+B\+U\+F\+F\+E\+R\+\_\+\+S\+I\+ZE (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{class_unpacker_af14a32e3d2bed82929da79c8db959128}\label{class_unpacker_af14a32e3d2bed82929da79c8db959128}} 
+\index{Unpacker@{Unpacker}!getCONVERTED\_PALETTE\_SIZE@{getCONVERTED\_PALETTE\_SIZE}}
+\index{getCONVERTED\_PALETTE\_SIZE@{getCONVERTED\_PALETTE\_SIZE}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{getCONVERTED\_PALETTE\_SIZE()}{getCONVERTED\_PALETTE\_SIZE()}}
+{\footnotesize\ttfamily int Unpacker\+::get\+C\+O\+N\+V\+E\+R\+T\+E\+D\+\_\+\+P\+A\+L\+E\+T\+T\+E\+\_\+\+S\+I\+ZE (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{class_unpacker_aca57aace3e1ed73c008daf2f8ed946c0}\label{class_unpacker_aca57aace3e1ed73c008daf2f8ed946c0}} 
+\index{Unpacker@{Unpacker}!getInFile@{getInFile}}
+\index{getInFile@{getInFile}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{getInFile()}{getInFile()}}
+{\footnotesize\ttfamily std\+::ifstream Unpacker\+::get\+In\+File (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{class_unpacker_aac7924bec881ea6b9949f5a3e62ffa3e}\label{class_unpacker_aac7924bec881ea6b9949f5a3e62ffa3e}} 
+\index{Unpacker@{Unpacker}!getNewPalette@{getNewPalette}}
+\index{getNewPalette@{getNewPalette}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{getNewPalette()}{getNewPalette()}}
+{\footnotesize\ttfamily char $\ast$ Unpacker\+::get\+New\+Palette (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{class_unpacker_ab9703cdabf46e9beff9ff24dc8ec025a}\label{class_unpacker_ab9703cdabf46e9beff9ff24dc8ec025a}} 
+\index{Unpacker@{Unpacker}!getOutFile@{getOutFile}}
+\index{getOutFile@{getOutFile}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{getOutFile()}{getOutFile()}}
+{\footnotesize\ttfamily std\+::ofstream Unpacker\+::get\+Out\+File (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{class_unpacker_adf99f5b45d26bb9ecfb154cbc25d7cbd}\label{class_unpacker_adf99f5b45d26bb9ecfb154cbc25d7cbd}} 
+\index{Unpacker@{Unpacker}!getOutFilePalette@{getOutFilePalette}}
+\index{getOutFilePalette@{getOutFilePalette}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{getOutFilePalette()}{getOutFilePalette()}}
+{\footnotesize\ttfamily std\+::ofstream Unpacker\+::get\+Out\+File\+Palette (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{class_unpacker_abdeebef550cb3fa6ea78b8c8b1e71d40}\label{class_unpacker_abdeebef550cb3fa6ea78b8c8b1e71d40}} 
+\index{Unpacker@{Unpacker}!getPalette@{getPalette}}
+\index{getPalette@{getPalette}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{getPalette()}{getPalette()}}
+{\footnotesize\ttfamily char $\ast$ Unpacker\+::get\+Palette (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{class_unpacker_a1a7b784e50814f0a6f04ab198332772e}\label{class_unpacker_a1a7b784e50814f0a6f04ab198332772e}} 
+\index{Unpacker@{Unpacker}!getPALETTE\_SIZE@{getPALETTE\_SIZE}}
+\index{getPALETTE\_SIZE@{getPALETTE\_SIZE}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{getPALETTE\_SIZE()}{getPALETTE\_SIZE()}}
+{\footnotesize\ttfamily int Unpacker\+::get\+P\+A\+L\+E\+T\+T\+E\+\_\+\+S\+I\+ZE (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{class_unpacker_a04513309909f012c958ca10f1ae36f45}\label{class_unpacker_a04513309909f012c958ca10f1ae36f45}} 
+\index{Unpacker@{Unpacker}!getTILE\_SIZE@{getTILE\_SIZE}}
+\index{getTILE\_SIZE@{getTILE\_SIZE}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{getTILE\_SIZE()}{getTILE\_SIZE()}}
+{\footnotesize\ttfamily int Unpacker\+::get\+T\+I\+L\+E\+\_\+\+S\+I\+ZE (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{class_unpacker_a50d6ca8b688425ff3247e78927764c36}\label{class_unpacker_a50d6ca8b688425ff3247e78927764c36}} 
+\index{Unpacker@{Unpacker}!getTILE\_WIDTH@{getTILE\_WIDTH}}
+\index{getTILE\_WIDTH@{getTILE\_WIDTH}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{getTILE\_WIDTH()}{getTILE\_WIDTH()}}
+{\footnotesize\ttfamily int Unpacker\+::get\+T\+I\+L\+E\+\_\+\+W\+I\+D\+TH (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{class_unpacker_a09396a05804e82483888cb13e957b73f}\label{class_unpacker_a09396a05804e82483888cb13e957b73f}} 
+\index{Unpacker@{Unpacker}!setBuffer@{setBuffer}}
+\index{setBuffer@{setBuffer}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{setBuffer()}{setBuffer()}}
+{\footnotesize\ttfamily void Unpacker\+::set\+Buffer (\begin{DoxyParamCaption}\item[{char $\ast$}]{value }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{class_unpacker_ab5fbad09e12c7509aab064d2cb62535c}\label{class_unpacker_ab5fbad09e12c7509aab064d2cb62535c}} 
+\index{Unpacker@{Unpacker}!setBUFFER\_SIZE@{setBUFFER\_SIZE}}
+\index{setBUFFER\_SIZE@{setBUFFER\_SIZE}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{setBUFFER\_SIZE()}{setBUFFER\_SIZE()}}
+{\footnotesize\ttfamily void Unpacker\+::set\+B\+U\+F\+F\+E\+R\+\_\+\+S\+I\+ZE (\begin{DoxyParamCaption}\item[{int}]{value }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{class_unpacker_a970605e6443d21d5006081fc9c8d111a}\label{class_unpacker_a970605e6443d21d5006081fc9c8d111a}} 
+\index{Unpacker@{Unpacker}!setCONVERTED\_PALETTE\_SIZE@{setCONVERTED\_PALETTE\_SIZE}}
+\index{setCONVERTED\_PALETTE\_SIZE@{setCONVERTED\_PALETTE\_SIZE}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{setCONVERTED\_PALETTE\_SIZE()}{setCONVERTED\_PALETTE\_SIZE()}}
+{\footnotesize\ttfamily void Unpacker\+::set\+C\+O\+N\+V\+E\+R\+T\+E\+D\+\_\+\+P\+A\+L\+E\+T\+T\+E\+\_\+\+S\+I\+ZE (\begin{DoxyParamCaption}\item[{int}]{value }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{class_unpacker_a90915b2dce5ad0d6356cdde032fcdb42}\label{class_unpacker_a90915b2dce5ad0d6356cdde032fcdb42}} 
+\index{Unpacker@{Unpacker}!setInFile@{setInFile}}
+\index{setInFile@{setInFile}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{setInFile()}{setInFile()}}
+{\footnotesize\ttfamily void Unpacker\+::set\+In\+File (\begin{DoxyParamCaption}\item[{const std\+::ifstream \&}]{value }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{class_unpacker_a26cdca2f5ffa3c2554be42421d89bc2d}\label{class_unpacker_a26cdca2f5ffa3c2554be42421d89bc2d}} 
+\index{Unpacker@{Unpacker}!setNewPalette@{setNewPalette}}
+\index{setNewPalette@{setNewPalette}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{setNewPalette()}{setNewPalette()}}
+{\footnotesize\ttfamily void Unpacker\+::set\+New\+Palette (\begin{DoxyParamCaption}\item[{char $\ast$}]{value }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{class_unpacker_ad1c470c92b12dbb88efcedbedbe390d4}\label{class_unpacker_ad1c470c92b12dbb88efcedbedbe390d4}} 
+\index{Unpacker@{Unpacker}!setOutFile@{setOutFile}}
+\index{setOutFile@{setOutFile}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{setOutFile()}{setOutFile()}}
+{\footnotesize\ttfamily void Unpacker\+::set\+Out\+File (\begin{DoxyParamCaption}\item[{const std\+::ofstream \&}]{value }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{class_unpacker_abe0159f65ad0c832a592d02ffb0cd06d}\label{class_unpacker_abe0159f65ad0c832a592d02ffb0cd06d}} 
+\index{Unpacker@{Unpacker}!setOutFilePalette@{setOutFilePalette}}
+\index{setOutFilePalette@{setOutFilePalette}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{setOutFilePalette()}{setOutFilePalette()}}
+{\footnotesize\ttfamily void Unpacker\+::set\+Out\+File\+Palette (\begin{DoxyParamCaption}\item[{const std\+::ofstream \&}]{value }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{class_unpacker_afaa66ecd2d8ecc627062f8494c0e686d}\label{class_unpacker_afaa66ecd2d8ecc627062f8494c0e686d}} 
+\index{Unpacker@{Unpacker}!setPALETTE\_SIZE@{setPALETTE\_SIZE}}
+\index{setPALETTE\_SIZE@{setPALETTE\_SIZE}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{setPALETTE\_SIZE()}{setPALETTE\_SIZE()}}
+{\footnotesize\ttfamily void Unpacker\+::set\+P\+A\+L\+E\+T\+T\+E\+\_\+\+S\+I\+ZE (\begin{DoxyParamCaption}\item[{int}]{value }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{class_unpacker_a9367e8c773629d94ea260112c5219ecc}\label{class_unpacker_a9367e8c773629d94ea260112c5219ecc}} 
+\index{Unpacker@{Unpacker}!setTILE\_SIZE@{setTILE\_SIZE}}
+\index{setTILE\_SIZE@{setTILE\_SIZE}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{setTILE\_SIZE()}{setTILE\_SIZE()}}
+{\footnotesize\ttfamily void Unpacker\+::set\+T\+I\+L\+E\+\_\+\+S\+I\+ZE (\begin{DoxyParamCaption}\item[{int}]{value }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{class_unpacker_ac35380561edbc427ad27aeef84e382a8}\label{class_unpacker_ac35380561edbc427ad27aeef84e382a8}} 
+\index{Unpacker@{Unpacker}!setTILE\_WIDTH@{setTILE\_WIDTH}}
+\index{setTILE\_WIDTH@{setTILE\_WIDTH}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{setTILE\_WIDTH()}{setTILE\_WIDTH()}}
+{\footnotesize\ttfamily void Unpacker\+::set\+T\+I\+L\+E\+\_\+\+W\+I\+D\+TH (\begin{DoxyParamCaption}\item[{int}]{value }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{class_unpacker_aa3b3b76b81552a0d7ad2aebf2ef42fdb}\label{class_unpacker_aa3b3b76b81552a0d7ad2aebf2ef42fdb}} 
+\index{Unpacker@{Unpacker}!unpack@{unpack}}
+\index{unpack@{unpack}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{unpack()}{unpack()}}
+{\footnotesize\ttfamily virtual int Unpacker\+::unpack (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [pure virtual]}}
+
+
+
+Implemented in \mbox{\hyperlink{class_door_unpacker_a5b383b0b57e451baaed26fe30eba33c9}{Door\+Unpacker}}, \mbox{\hyperlink{class_item_unpacker_a5504ebc8f014a3dc75da11f5eab0412b}{Item\+Unpacker}}, \mbox{\hyperlink{class_armor_unpacker_abe2eddf7e52ea66a0f74b27c33f3e9a9}{Armor\+Unpacker}}, \mbox{\hyperlink{class_dechunker_unpacker_aaa048a12b7d431864b683ff0d64a8246}{Dechunker\+Unpacker}}, and \mbox{\hyperlink{class_p_x_l_unpacker_a4f370642113655b74d31f99645fc0013}{P\+X\+L\+Unpacker}}.
+
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{class_unpacker_ac029f03154662fdc3db3f8309ff806b8}\label{class_unpacker_ac029f03154662fdc3db3f8309ff806b8}} 
+\index{Unpacker@{Unpacker}!buffer@{buffer}}
+\index{buffer@{buffer}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{buffer}{buffer}}
+{\footnotesize\ttfamily char$\ast$ Unpacker\+::buffer\hspace{0.3cm}{\ttfamily [protected]}}
+
+\mbox{\Hypertarget{class_unpacker_a1d9c8beff6faf4d9cbb8a348d3c3a9ff}\label{class_unpacker_a1d9c8beff6faf4d9cbb8a348d3c3a9ff}} 
+\index{Unpacker@{Unpacker}!BUFFER\_SIZE@{BUFFER\_SIZE}}
+\index{BUFFER\_SIZE@{BUFFER\_SIZE}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{BUFFER\_SIZE}{BUFFER\_SIZE}}
+{\footnotesize\ttfamily int Unpacker\+::\+B\+U\+F\+F\+E\+R\+\_\+\+S\+I\+ZE\hspace{0.3cm}{\ttfamily [protected]}}
+
+\mbox{\Hypertarget{class_unpacker_a44c5be249cac6b7011daa04c191b2537}\label{class_unpacker_a44c5be249cac6b7011daa04c191b2537}} 
+\index{Unpacker@{Unpacker}!CONVERTED\_PALETTE\_SIZE@{CONVERTED\_PALETTE\_SIZE}}
+\index{CONVERTED\_PALETTE\_SIZE@{CONVERTED\_PALETTE\_SIZE}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{CONVERTED\_PALETTE\_SIZE}{CONVERTED\_PALETTE\_SIZE}}
+{\footnotesize\ttfamily int Unpacker\+::\+C\+O\+N\+V\+E\+R\+T\+E\+D\+\_\+\+P\+A\+L\+E\+T\+T\+E\+\_\+\+S\+I\+ZE\hspace{0.3cm}{\ttfamily [protected]}}
+
+\mbox{\Hypertarget{class_unpacker_a2a92ca86cbbe7e53632996da75c1356c}\label{class_unpacker_a2a92ca86cbbe7e53632996da75c1356c}} 
+\index{Unpacker@{Unpacker}!dechunker@{dechunker}}
+\index{dechunker@{dechunker}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{dechunker}{dechunker}}
+{\footnotesize\ttfamily \mbox{\hyperlink{class_dechunker}{Dechunker}}$\ast$ Unpacker\+::dechunker\hspace{0.3cm}{\ttfamily [protected]}}
+
+\mbox{\Hypertarget{class_unpacker_ae684424d4de033cd94dc84bc442256fc}\label{class_unpacker_ae684424d4de033cd94dc84bc442256fc}} 
+\index{Unpacker@{Unpacker}!filename@{filename}}
+\index{filename@{filename}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{filename}{filename}}
+{\footnotesize\ttfamily std\+::string Unpacker\+::filename\hspace{0.3cm}{\ttfamily [protected]}}
+
+\mbox{\Hypertarget{class_unpacker_aa74c4e7aaa49c0effe2cd6e79398642f}\label{class_unpacker_aa74c4e7aaa49c0effe2cd6e79398642f}} 
+\index{Unpacker@{Unpacker}!inFile@{inFile}}
+\index{inFile@{inFile}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{inFile}{inFile}}
+{\footnotesize\ttfamily std\+::ifstream Unpacker\+::in\+File\hspace{0.3cm}{\ttfamily [protected]}}
+
+\mbox{\Hypertarget{class_unpacker_a3d05285e188cced5a48845d49d0779f1}\label{class_unpacker_a3d05285e188cced5a48845d49d0779f1}} 
+\index{Unpacker@{Unpacker}!newPalette@{newPalette}}
+\index{newPalette@{newPalette}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{newPalette}{newPalette}}
+{\footnotesize\ttfamily char$\ast$ Unpacker\+::new\+Palette\hspace{0.3cm}{\ttfamily [protected]}}
+
+\mbox{\Hypertarget{class_unpacker_af4bd64fdcc550d2e3948fb1c56387a09}\label{class_unpacker_af4bd64fdcc550d2e3948fb1c56387a09}} 
+\index{Unpacker@{Unpacker}!outFile@{outFile}}
+\index{outFile@{outFile}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{outFile}{outFile}}
+{\footnotesize\ttfamily std\+::ofstream Unpacker\+::out\+File\hspace{0.3cm}{\ttfamily [protected]}}
+
+\mbox{\Hypertarget{class_unpacker_af43a16bb4f1ac7365d1a3a95949d1b06}\label{class_unpacker_af43a16bb4f1ac7365d1a3a95949d1b06}} 
+\index{Unpacker@{Unpacker}!outFilePalette@{outFilePalette}}
+\index{outFilePalette@{outFilePalette}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{outFilePalette}{outFilePalette}}
+{\footnotesize\ttfamily std\+::ofstream Unpacker\+::out\+File\+Palette\hspace{0.3cm}{\ttfamily [protected]}}
+
+\mbox{\Hypertarget{class_unpacker_a7ae41b83dc6ea708df77a08388cec079}\label{class_unpacker_a7ae41b83dc6ea708df77a08388cec079}} 
+\index{Unpacker@{Unpacker}!palette@{palette}}
+\index{palette@{palette}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{palette}{palette}}
+{\footnotesize\ttfamily char$\ast$ Unpacker\+::palette\hspace{0.3cm}{\ttfamily [protected]}}
+
+\mbox{\Hypertarget{class_unpacker_a68482f78aa85f71d6fe694922e11fba7}\label{class_unpacker_a68482f78aa85f71d6fe694922e11fba7}} 
+\index{Unpacker@{Unpacker}!PALETTE\_SIZE@{PALETTE\_SIZE}}
+\index{PALETTE\_SIZE@{PALETTE\_SIZE}!Unpacker@{Unpacker}}
+\doxysubsubsection{\texorpdfstring{PALETTE\_SIZE}{PALETTE\_SIZE}}
+{\footnotesize\ttfamily int Unpacker\+::\+P\+A\+L\+E\+T\+T\+E\+\_\+\+S\+I\+ZE\hspace{0.3cm}{\ttfamily [protected]}}
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+/media/\+D\+A\+T\+A/\+Projects/dino2-\/unpacker/unpacker/\mbox{\hyperlink{unpacker_8h}{unpacker.\+h}}\item 
+/media/\+D\+A\+T\+A/\+Projects/dino2-\/unpacker/unpacker/\mbox{\hyperlink{unpacker_8cpp}{unpacker.\+cpp}}\end{DoxyCompactItemize}
