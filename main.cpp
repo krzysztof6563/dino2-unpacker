@@ -5,7 +5,7 @@
 #include "unpacker/doorunpacker.h"
 #include "unpacker/dechunkerunpacker.h"
 #include "unpacker/armorunpacker.h"
-#include "unpacker/pxlunpacker.h"
+#include "unpacker/PXLUnpacker.h"
 #include "dechunker.h"
 
 using namespace std;
@@ -28,20 +28,6 @@ Unpacker *getUnpackerByFilename(std::string filename) {
     }
 //    return nullptr;
 }
-
-//void reshapeImage(char buffer[]) {
-//    char newBuffer[BUFFER_SIZE];
-//    for (int i=0;i<TILE_SIZE;i++) {
-//        newBuffer[i] = buffer[i];
-//        newBuffer[i+TILE_WIDTH] = buffer[TILE_SIZE+1];
-//        newBuffer[i+2*TILE_SIZE] = buffer[i+2*TILE_SIZE];
-//        newBuffer[i+TILE_WIDTH+2*TILE_SIZE] = buffer[TILE_SIZE+1+2*TILE_SIZE];
-//    }
-//    for (int i=0;i<BUFFER_SIZE;i++) {
-//        buffer[i] = newBuffer[i];
-//    }
-//    return;
-//}
 
 int main(int argc, char *argv[]){
     if (argc > 1){

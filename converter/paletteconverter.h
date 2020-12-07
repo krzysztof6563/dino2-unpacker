@@ -7,7 +7,7 @@
 /**
  * @brief The PaletteConverter class, converts palettes used across all files in DC2 from rgb555 to rgb888
  */
-class PaletteConverter : public Converter {
+class PaletteConverter {
 public:
     PaletteConverter(int paletteSize);
     ~PaletteConverter();

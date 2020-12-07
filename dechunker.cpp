@@ -30,7 +30,7 @@ void Dechunker::dechunk()
             buffer = new char [chunkSize];
             chunkNo++;
         }
-        std::cout << "Finished" << std::endl;
+        std::cout << "Finished dechunking process" << std::endl;
     }
 }
 

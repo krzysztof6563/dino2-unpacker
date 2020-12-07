@@ -120,6 +120,7 @@ void DoorUnpacker::extractWAV(std::ifstream *inFile, std::string outFilename, Wa
     outFile.open(outFilename, std::fstream::binary);
     outFile.write(WAVE_FILE, WAVE_FILE_SIZE);
     outFile.close();
+    delete[] WAVE_FILE;
 }
 
 int DoorUnpacker::mapBytesToChunks(int bytes) {
