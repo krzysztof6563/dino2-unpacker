@@ -6,3 +6,4 @@ CMakeLists.txt.user
 CMakeFiles
 CMakeCache.txt
 cmake_install.cmake
+CMakeLists.txt.*

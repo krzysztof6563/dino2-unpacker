@@ -1,11 +1,12 @@
 #include <iostream>
 #include <fstream>
 #include <string.h>
-#include "unpacker/itemunpacker.h"
+#include "unpacker/ItemUnpacker.h"
 #include "unpacker/doorunpacker.h"
 #include "unpacker/dechunkerunpacker.h"
 #include "unpacker/armorunpacker.h"
 #include "unpacker/PXLUnpacker.h"
+#include "unpacker/WPUnpacker.h"
 #include "dechunker.h"
 
 using namespace std;
@@ -23,6 +24,8 @@ Unpacker *getUnpackerByFilename(std::string filename) {
         return new ArmorUnpacker(filename);
     } else if (filename.find(".PXL") != std::string::npos) {
         return new PXLUnpacker(filename);
+    } else if (filename.find("WP") != std::string::npos) {
+        return new WPUnpacker(filename);
     } else {
         return new DechunkerUnpacker(filename);
     }
