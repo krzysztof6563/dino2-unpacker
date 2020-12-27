@@ -2,9 +2,14 @@
 #define ITEMUNPACKER_H
 
 #include <cstring>
-//#include <Magick++.h>
 #include "unpacker.h"
 #include "../converter/paletteconverter.h"
+#include <vector>
+#include <QPixmap>
+#include <QString>
+#include <QRgb>
+#include <QDebug>
+#include <QVector>
 
 class ItemUnpacker : public Unpacker {
 public:
@@ -12,6 +17,11 @@ public:
     ~ItemUnpacker();
 
     int unpack();
+    bool saveAsPNG(std::string outFileName, char* palette);
+    void convertToRGB888();
+
+    std::vector<unsigned char> outData;
+    QVector<QRgb> colors;
 
 private:
     PaletteConverter *p;

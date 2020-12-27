@@ -8,6 +8,7 @@
 #include <QPixmap>
 #include <QString>
 #include <QRgb>
+#include <QDebug>
 
 class WPUnpacker : public Unpacker
 {

@@ -1,7 +1,7 @@
 #include "armorunpacker.h"
 
 ArmorUnpacker::ArmorUnpacker(std::string filename) : Unpacker (filename) {
-
+    std::cout << "** Unpacker type: ArmorUnpacker" << std::endl;
 }
 
 int ArmorUnpacker::unpack()

@@ -7,3 +7,4 @@ Supported files:
 - DOOR*.DAT
 - WP*.DAT
 - *.PXL
+- *.TEX

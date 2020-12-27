@@ -7,6 +7,7 @@
 #include "unpacker/armorunpacker.h"
 #include "unpacker/PXLUnpacker.h"
 #include "unpacker/WPUnpacker.h"
+#include "unpacker/TEXUnpacker.h"
 #include "dechunker.h"
 
 using namespace std;
@@ -18,7 +19,6 @@ Unpacker *getUnpackerByFilename(std::string filename) {
         return new DoorUnpacker(filename);
     } else if (filename.find("ARMOR") != std::string::npos ||
                filename.find("CAPLOGO.DAT") != std::string::npos ||
-               filename.find(".TEX") != std::string::npos ||
                filename.find("MAP.BIN") != std::string::npos ||
                filename.find("MS_") != std::string::npos ) {
         return new ArmorUnpacker(filename);
@@ -26,6 +26,8 @@ Unpacker *getUnpackerByFilename(std::string filename) {
         return new PXLUnpacker(filename);
     } else if (filename.find("WP") != std::string::npos) {
         return new WPUnpacker(filename);
+    } else if (filename.find(".TEX") != std::string::npos) {
+        return new TEXUnpacker(filename);
     } else {
         return new DechunkerUnpacker(filename);
     }

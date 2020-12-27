@@ -2,7 +2,7 @@
 
 DechunkerUnpacker::DechunkerUnpacker(std::string filename) : Unpacker (filename)
 {
-
+    std::cout << "** Unpacker type: DechunkerUnpacker" << std::endl;
 }
 
 int DechunkerUnpacker::unpack()

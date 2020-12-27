@@ -2,6 +2,7 @@
 
 PXLUnpacker::PXLUnpacker(std::string filename) : Unpacker (filename)
 {
+    std::cout << "** Unpacker type: PXLUnpacker" << std::endl;
     this->dechunker->dechunk();
     auto size = this->dechunker->getNumberOfChunks();
     //load chunks data to rgb555 array;
@@ -21,7 +22,7 @@ PXLUnpacker::PXLUnpacker(std::string filename) : Unpacker (filename)
 //keep track if image was converted
 int PXLUnpacker::unpack() {
     this->convertToRGB888();
-    this->saveAsPNG(this->filename+".png");
+    this->saveAsPNG(this->filename);
 
     return 1;
 }
@@ -32,11 +33,11 @@ void PXLUnpacker::convertToRGB888() {
     return;
 }
 
-bool PXLUnpacker::saveAsPNG(std::string filename) {
+bool PXLUnpacker::saveAsPNG(std::string outFileName) {
     if (!this->isConverted) {
         this->convertToRGB888();
     }
 
     auto image = new QImage(&rgb888Data[0], this->width, this->height, QImage::Format::Format_RGB888, nullptr, nullptr);
-    return image->save(QString::fromStdString(this->filename+".png"), "PNG");
+    return image->save(QString::fromStdString(outFileName+".png"), "PNG");
 }

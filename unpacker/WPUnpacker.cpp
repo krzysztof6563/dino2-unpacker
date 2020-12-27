@@ -2,6 +2,7 @@
 
 WPUnpacker::WPUnpacker(std::string filename) : Unpacker (filename)
 {
+    std::cout << "** Unpacker type: WPUnpacker" << std::endl;
     this->dechunker->dechunk();
     auto size = this->dechunker->getNumberOfChunks();
     //load chunks data to rgb555 array;
@@ -13,12 +14,9 @@ WPUnpacker::WPUnpacker(std::string filename) : Unpacker (filename)
     }
 
     this->converter = std::unique_ptr<RGBConverter>(new RGBConverter());
+
 }
 
-//save new image to array
-//save image to PNG
-//separate rgb555 array with rgb888
-//keep track if image was converted
 int WPUnpacker::unpack() {
     auto palette = this->dechunker->getChunkAt(this->PALLETTE_CHUNK);
     for(size_t j = 0; j<this->dechunker->getChunkSize(); j++) {
@@ -32,23 +30,21 @@ int WPUnpacker::unpack() {
 }
 
 void WPUnpacker::convertToRGB888() {
+    qDebug() << "Converting RGB555 to RGB888";
     this->rgb888Data = converter->convert(this->rgb555Data);
     this->isConverted = true;
     return;
 }
 
-bool WPUnpacker::saveAsPNG(std::string filename) {
-    if (!this->isConverted) {
-        this->convertToRGB888();
-    }
-
+bool WPUnpacker::saveAsPNG(std::string outFileName) {
     int imageHeight = (this->dechunker->getNumberOfChunks()-2)*32;
+    int headerOffset = this->dechunker->getChunkSize();
 
-    auto image = new QImage(&rgb555Data[this->dechunker->getChunkSize()], this->width, imageHeight, QImage::Format::Format_Indexed8, nullptr, nullptr);
+    auto image = new QImage(&rgb555Data[headerOffset], this->width, imageHeight, QImage::Format::Format_Indexed8, nullptr, nullptr);
     for (size_t i = 0; i<paletteData.size(); i += 3) {
         this->colors.push_back((new QColor(paletteData[i], paletteData[i+1], paletteData[i+2]))->rgb());
     }
 
     image->setColorTable(this->colors);
-    return image->save(QString::fromStdString(this->filename+".png"), "PNG");
+    return image->save(QString::fromStdString(outFileName+".png"), "PNG");
 }
