@@ -10,6 +10,8 @@ public:
     DechunkerUnpacker(std::string filename);
 
     int unpack();
+    std::string unpackerName = "DechunkerUpdater";
+
 };
 
 #endif // DECHUNKERUNPACKER_H

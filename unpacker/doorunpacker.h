@@ -39,6 +39,8 @@ private:
     PaletteConverter *p;
     std::vector<WaveFile*> WAVE_FILES;
     const char *RIFF_HEADER = "RIFF";
+
+    std::string unpackerName = "DoorUnpacker";
 };
 
 #endif // DOORUNPACKER_H

@@ -10,6 +10,8 @@ public:
     ArmorUnpacker(std::string filename);
 
     int unpack();
+
+    std::string unpackerName = "ArmorUnpacker";
 };
 
 #endif // ARMORUNPACKER_H

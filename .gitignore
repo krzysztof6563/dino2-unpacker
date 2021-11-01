@@ -7,3 +7,5 @@ CMakeFiles
 CMakeCache.txt
 cmake_install.cmake
 CMakeLists.txt.*
+game_assets/
+Makefile

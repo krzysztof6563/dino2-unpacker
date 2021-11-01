@@ -9,10 +9,10 @@ Unpacker::Unpacker(std::string filename)
 
 Unpacker::~Unpacker()
 {
-    delete[] buffer;
-    delete[] palette;
-    delete[] newPalette;
-    delete dechunker;
+    // delete[] buffer;
+    // delete[] palette;
+    // delete[] newPalette;
+    // delete dechunker;
 }
 
 void Unpacker::allocateVariables()
@@ -75,4 +75,11 @@ char *Unpacker::getNewPalette() const
 void Unpacker::setNewPalette(char *value)
 {
     newPalette = value;
+}
+
+void Unpacker::convertToRGB888() {
+    qDebug() << "Converting RGB555 to RGB888";
+    this->rgb888Data = converter->convert(this->rgb555Data);
+    this->isConverted = true;
+    return;
 }

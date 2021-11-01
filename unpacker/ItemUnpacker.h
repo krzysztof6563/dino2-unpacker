@@ -18,10 +18,10 @@ public:
 
     int unpack();
     bool saveAsPNG(std::string outFileName, char* palette);
-    void convertToRGB888();
 
     std::vector<unsigned char> outData;
     QVector<QRgb> colors;
+    std::string unpackerName = "ItemUnpacker";
 
 private:
     PaletteConverter *p;

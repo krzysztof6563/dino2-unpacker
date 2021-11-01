@@ -2,7 +2,6 @@
 #define PXLUNPACKER_H
 
 #include "unpacker.h"
-#include "../converter/RGBConverter.h"
 #include <string>
 #include <vector>
 #include <QPixmap>
@@ -15,19 +14,13 @@ public:
 
     int unpack();
     bool saveAsPNG(std::string filename);
-    void convertToRGB888();
 
     int width = 320;
     int height = 240;
 
     int rgb555DataSize = width * height * 2;
     int rgb888DataSize = width * height * 3;
-
-    std::vector<unsigned char> rgb555Data;
-    std::vector<unsigned char> rgb888Data;
-
-    std::unique_ptr<RGBConverter> converter;
-    bool isConverted = false; 
+    std::string unpackerName = "PXLUnpacker";
 };
 
 #endif // PXLUNPACKER_H

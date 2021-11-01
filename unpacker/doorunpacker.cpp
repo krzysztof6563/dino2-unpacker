@@ -1,7 +1,6 @@
 #include "doorunpacker.h"
 
 DoorUnpacker::DoorUnpacker(std::string filename) : Unpacker (filename) {
-    std::cout << "** Unpacker type: DoorUnpacker" << std::endl;
     BUFFER_SIZE = 64*32*4;
     PALETTE_SIZE = 64*8+64*24;
     CONVERTED_PALETTE_SIZE = PALETTE_SIZE/2*3;

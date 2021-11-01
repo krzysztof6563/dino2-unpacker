@@ -2,7 +2,6 @@
 
 PXLUnpacker::PXLUnpacker(std::string filename) : Unpacker (filename)
 {
-    std::cout << "** Unpacker type: PXLUnpacker" << std::endl;
     this->dechunker->dechunk();
     auto size = this->dechunker->getNumberOfChunks();
     //load chunks data to rgb555 array;
@@ -12,7 +11,6 @@ PXLUnpacker::PXLUnpacker(std::string filename) : Unpacker (filename)
             this->rgb555Data.push_back(chunk[j]);
         }
     }
-
     this->converter = std::unique_ptr<RGBConverter>(new RGBConverter());
 }
 
@@ -23,14 +21,9 @@ PXLUnpacker::PXLUnpacker(std::string filename) : Unpacker (filename)
 int PXLUnpacker::unpack() {
     this->convertToRGB888();
     this->saveAsPNG(this->filename);
+    std::cout << "Saved as PNG file named: " << this->filename << ".png" << std::endl; 
 
     return 1;
-}
-
-void PXLUnpacker::convertToRGB888() {
-    this->rgb888Data = converter->convert(this->rgb555Data);
-    this->isConverted = true;
-    return;
 }
 
 bool PXLUnpacker::saveAsPNG(std::string outFileName) {

@@ -2,7 +2,6 @@
 
 WPUnpacker::WPUnpacker(std::string filename) : Unpacker (filename)
 {
-    std::cout << "** Unpacker type: WPUnpacker" << std::endl;
     this->dechunker->dechunk();
     auto size = this->dechunker->getNumberOfChunks();
     //load chunks data to rgb555 array;
@@ -12,9 +11,7 @@ WPUnpacker::WPUnpacker(std::string filename) : Unpacker (filename)
             this->rgb555Data.push_back(chunk[j]);
         }
     }
-
     this->converter = std::unique_ptr<RGBConverter>(new RGBConverter());
-
 }
 
 int WPUnpacker::unpack() {
@@ -24,16 +21,9 @@ int WPUnpacker::unpack() {
     }
     paletteData = this->converter->convert(paletteData);
 
-    this->saveAsPNG(this->filename+".png");
+    this->saveAsPNG(this->filename);
 
     return 1;
-}
-
-void WPUnpacker::convertToRGB888() {
-    qDebug() << "Converting RGB555 to RGB888";
-    this->rgb888Data = converter->convert(this->rgb555Data);
-    this->isConverted = true;
-    return;
 }
 
 bool WPUnpacker::saveAsPNG(std::string outFileName) {

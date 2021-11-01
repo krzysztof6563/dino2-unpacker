@@ -18,7 +18,7 @@ std::vector<unsigned char> RGBConverter::convert(std::vector<unsigned char> data
     uint8_t red8, green8, blue8;
     char byte1, byte2;
 
-    for (size_t i=0; i<data.size(); i+=2) {
+    for (std::size_t i=0; i<data.size(); i+=2) {
         //Reading 2 bytes
         byte1 = data.at(i);
         byte2 = data.at(i+1);

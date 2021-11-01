@@ -2,7 +2,6 @@
 
 TEXUnpacker::TEXUnpacker(std::string filename) : Unpacker (filename)
 {
-    std::cout << "** Unpacker type: TEXUnpacker" << std::endl;
     this->dechunker->dechunk();
     auto size = this->dechunker->getNumberOfChunks();
     //load chunks data to rgb555 array;
@@ -12,9 +11,7 @@ TEXUnpacker::TEXUnpacker(std::string filename) : Unpacker (filename)
             this->rgb555Data.push_back(chunk[j]);
         }
     }
-
     this->converter = std::unique_ptr<RGBConverter>(new RGBConverter());
-
 }
 
 int TEXUnpacker::unpack() {
@@ -41,13 +38,6 @@ int TEXUnpacker::unpack() {
         this->saveAsPNG(this->filename+"_2", (34-1)*this->dechunker->getChunkSize(), imageHeight);
     }
     return 1;
-}
-
-void TEXUnpacker::convertToRGB888() {
-    qDebug() << "Converting RGB555 to RGB888";
-    this->rgb888Data = converter->convert(this->rgb555Data);
-    this->isConverted = true;
-    return;
 }
 
 /**

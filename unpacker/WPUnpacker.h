@@ -17,19 +17,13 @@ public:
 
     int unpack();
     bool saveAsPNG(std::string filename);
-    void convertToRGB888();
 
     const int PALLETTE_CHUNK = 33;
     
     int width = 64;
 
-    std::vector<unsigned char> rgb555Data;
-    std::vector<unsigned char> rgb888Data;
     std::vector<unsigned char> paletteData;
-    QVector<QRgb> colors;
-
-    std::unique_ptr<RGBConverter> converter;
-    bool isConverted = false; 
+    std::string unpackerName = "WPUnpacker";
 };
 
 #endif // WPUNPACKER_H

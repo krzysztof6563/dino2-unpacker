@@ -9,9 +9,9 @@ Dechunker::Dechunker(std::string filename)
 
 Dechunker::~Dechunker()
 {
-    for (auto chunk : chunkTable) {
-        delete[] chunk;
-    }
+    // for (auto chunk : chunkTable) {
+    //     delete[] chunk;
+    // }
     chunkTable.clear();
     delete[] buffer;
 }
@@ -19,7 +19,7 @@ Dechunker::~Dechunker()
 void Dechunker::dechunk()
 {
     if (inFile.is_open()){
-        std::cout << "Beginnig dechunking process" << std::endl;
+        std::cout << "[DEBUG] Beginnig dechunking process" << std::endl;
         const std::filesystem::path path = filename;
         auto size = std::filesystem::file_size(path);
         numberOfChunks = size/chunkSize;
@@ -30,7 +30,7 @@ void Dechunker::dechunk()
             buffer = new char [chunkSize];
             chunkNo++;
         }
-        std::cout << "Finished dechunking process" << std::endl;
+        std::cout << "[DEBUG] Finished dechunking process" << std::endl;
     }
 }
 
