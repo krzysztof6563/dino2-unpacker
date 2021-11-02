@@ -19,51 +19,51 @@ void displayHelp() {
 
     Supported file formats:
 
-    ---------------------------------------------------
-    | FILE PATTERN | SUPPORTED | NOTES                |
-    ---------------------------------------------------
-    | *.PXL        | YES       |                      |
-    | *.TEX        | YES       |                      |
-    | ARMOR*.DAT   | YES       |                      |
-    | CAPLOGO.DAT  | NO        |                      |
-    | COMING.DAT   | NO        |                      |
-    | CONTINUE.DAT | NO        |                      |
-    | CORE*.DAT    | NO        |                      |
-    | DEMO*.TRG    | NO        |                      |
-    | DOOR*.DAT    | ALMOST    | No 3D model data     |
-    | E*.DAT       | NO        |                      |
-    | ENDING.DAT   | NO        |                      |
-    | ENTRY.DAT    | NO        |                      |
-    | FILE.DAT     | NO        |                      |
-    | GAMEOVER.DAT | NO        |                      |
-    | ITEM.DAT     | YES       | No 3D model data     |
-    | KOF_P00P.DAT | NO        |                      |
-    | LOAD.DAT     | NO        |                      |
-    | MAP.BIN      | NO        |                      |
-    | MAP.DAT      | NO        |                      |
-    | MAP_ST0.DAT  | NO        |                      |
-    | ME_0A00.DAT  | NO        |                      |
-    | MF_0A00.DAT  | NO        |                      |
-    | M_RESULT.DAT | NO        |                      |
-    | MS_0000.DAT  | NO        |                      |
-    | M_TITLE.DAT  | NO        |                      |
-    | NO_DATA.PXL  | NO        |                      |
-    | OPENING.DAT  | NO        |                      |
-    | OPTION.DAT   | NO        |                      |
-    | RES00.DAT    | NO        |                      |
-    | RESULT.DAT   | NO        |                      |
-    | SAVE.DAT     | NO        |                      |
-    | SC01.DAT     | NO        |                      |
-    | ST*.DAT      | NO        |                      |
-    | ST*.DBS      | YES       |                      |
-    | SUBSCR3.DAT  | NO        |                      |
-    | SUBSCR6.DAT  | NO        |                      |
-    | TITLE.DAT    | NO        |                      |
-    | TITLE2.DAT   | NO        |                      |
-    | WARNING.DAT  | NO        |                      |
-    | WEP_P000.DAT | NO        |                      |
-    | WP*.DAT      | YES       |                      |
-    ---------------------------------------------------
+    |---------------------------------------------------------------------------|
+    | FILE PATTERN | SUPPORTED  | NOTES                                          |
+    | ------------ | ---------  | ---------------------------------------------- |
+    | *.PXL        | ✅         | Saves images as PNGs                           |
+    | *.TEX        | ✅         | Saves images as PNGs                           |
+    | ARMOR*.DAT   | 🔨         | Implemented dechunking                         |
+    | CAPLOGO.DAT  | ❌         |                                                |
+    | COMING.DAT   | ❌         |                                                |
+    | CONTINUE.DAT | ❌         |                                                |
+    | CORE*.DAT    | ❌         |                                                |
+    | DEMO*.TRG    | ❌         |                                                |
+    | DOOR*.DAT    | 🔨         | Extracts textures and soudns, 3D model missing |
+    | E*.DAT       | ❌         |                                                |
+    | ENDING.DAT   | ❌         |                                                |
+    | ENTRY.DAT    | ❌         |                                                |
+    | FILE.DAT     | ❌         |                                                |
+    | GAMEOVER.DAT | ❌         |                                                |
+    | ITEM.DAT     | ✅         | Saves images as PNGs                           |
+    | KOF_*.DAT    | ❌         |                                                |
+    | LOAD.DAT     | ❌         |                                                |
+    | MAP.BIN      | ❌         |                                                |
+    | MAP.DAT      | ❌         |                                                |
+    | MAP_ST*.DAT  | ❌         |                                                |
+    | ME_*.DAT     | ❌         |                                                |
+    | MF_*.DAT     | ❌         |                                                |
+    | M_RESULT.DAT | ❌         |                                                |
+    | MS_*.DAT     | ❌         |                                                |
+    | M_TITLE.DAT  | ❌         |                                                |
+    | NO_DATA.PXL  | ❌         |                                                |
+    | OPENING.DAT  | ❌         |                                                |
+    | OPTION.DAT   | ❌         |                                                |
+    | RES*.DAT     | ❌         |                                                |
+    | RESULT.DAT   | ❌         |                                                |
+    | SAVE.DAT     | ❌         |                                                |
+    | SC*.DAT      | ❌         |                                                |
+    | ST*.DAT      | ❌         |                                                |
+    | ST*.DBS      | ✅         | Saves invidual iamges as PNGs                  |
+    | SUBSCR3.DAT  | ❌         |                                                |
+    | SUBSCR6.DAT  | ❌         |                                                |
+    | TITLE.DAT    | ❌         |                                                |
+    | TITLE2.DAT   | ❌         |                                                |
+    | WARNING.DAT  | ❌         |                                                |
+    | WEP_*.DAT    | ❌         |                                                |
+    | WP*.DAT      | ✅         | Saves images as PNGs                           |
+    ------------------------------------------------------------------------------
 
     Copyright Krzysztof Michalski 2019 - 2021
     https://github.com/krzysztof6563/dino2-unpacker
