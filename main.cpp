@@ -2,9 +2,9 @@
 #include <fstream>
 #include <string.h>
 #include "unpacker/ItemUnpacker.h"
-#include "unpacker/doorunpacker.h"
-#include "unpacker/dechunkerunpacker.h"
-#include "unpacker/armorunpacker.h"
+#include "unpacker/DoorUnpacker.h"
+#include "unpacker/DechunkerUnpacker.h"
+#include "unpacker/ArmorUnpacker.h"
 #include "unpacker/PXLUnpacker.h"
 #include "unpacker/WPUnpacker.h"
 #include "unpacker/TEXUnpacker.h"
@@ -55,7 +55,7 @@ void displayHelp() {
     | SAVE.DAT     | NO        |                      |
     | SC01.DAT     | NO        |                      |
     | ST*.DAT      | NO        |                      |
-    | ST*.DBS      | MOSTLY    |                      | THERE IS SOME JPG HERE
+    | ST*.DBS      | YES       |                      |
     | SUBSCR3.DAT  | NO        |                      |
     | SUBSCR6.DAT  | NO        |                      |
     | TITLE.DAT    | NO        |                      |
@@ -76,13 +76,12 @@ void displayHelp() {
 
 Unpacker *getUnpackerByFilename(std::string filename) {
     if (filename == "ITEM.DAT") {
-    return new ItemUnpacker(filename);
+        return new ItemUnpacker(filename);
     } else if (filename.find("DOOR") != std::string::npos) {
         return new DoorUnpacker(filename);
     } else if (filename.find("ARMOR") != std::string::npos ||
                filename.find("CAPLOGO.DAT") != std::string::npos ||
-               filename.find("MAP.BIN") != std::string::npos ||
-               filename.find("MS_") != std::string::npos ) {
+            filename.find("MAP.BIN") != std::string::npos) {
         return new ArmorUnpacker(filename);
     } else if (filename.find(".PXL") != std::string::npos) {
         return new PXLUnpacker(filename);
@@ -104,7 +103,7 @@ int main(int argc, char *argv[]) {
             std::string filename(argv[i]);
             Unpacker *u = getUnpackerByFilename(filename);
             if (u != nullptr) {
-                std::cout << "[INFO] Unpacker type: " << u->unpackerName << std::endl;
+                std::cout << "[INFO] Choosen Unpacker type: " << u->getName() << std::endl;
                 u->unpack();
                 std::cout << "[INFO] Unpacked: " << filename << std::endl;
             } else {

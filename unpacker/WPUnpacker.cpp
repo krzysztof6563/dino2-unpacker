@@ -1,7 +1,6 @@
 #include "WPUnpacker.h"
 
-WPUnpacker::WPUnpacker(std::string filename) : Unpacker (filename)
-{
+WPUnpacker::WPUnpacker(std::string filename) : Unpacker (filename) {
     this->dechunker->dechunk();
     auto size = this->dechunker->getNumberOfChunks();
     //load chunks data to rgb555 array;
@@ -37,4 +36,8 @@ bool WPUnpacker::saveAsPNG(std::string outFileName) {
 
     image->setColorTable(this->colors);
     return image->save(QString::fromStdString(outFileName+".png"), "PNG");
+}
+
+std::string WPUnpacker::getName() {
+    return "WPUnpacker";
 }

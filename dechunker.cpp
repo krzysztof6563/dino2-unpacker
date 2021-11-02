@@ -1,32 +1,29 @@
 #include "dechunker.h"
 
-Dechunker::Dechunker(std::string filename)
-{
+Dechunker::Dechunker(std::string filename) {
     this->filename = filename;
     this->inFile.open(filename, std::ios::in | std::ios::binary);
     buffer = new char[this->chunkSize];
 }
 
-Dechunker::~Dechunker()
-{
-    // for (auto chunk : chunkTable) {
+Dechunker::~Dechunker() {
+    // for (auto chunk : chunkVector) {
     //     delete[] chunk;
     // }
-    chunkTable.clear();
+    chunkVector.clear();
     delete[] buffer;
 }
 
-void Dechunker::dechunk()
-{
+void Dechunker::dechunk() {
     if (inFile.is_open()){
         std::cout << "[DEBUG] Beginnig dechunking process" << std::endl;
         const std::filesystem::path path = filename;
         auto size = std::filesystem::file_size(path);
         numberOfChunks = size/chunkSize;
-        std::cout << "Chunks to extract: " << numberOfChunks << std::endl;
+        std::cout << "[DEBUG] Chunks to extract: " << numberOfChunks << std::endl;
         int chunkNo = 0;
         while (inFile.read(buffer, this->chunkSize)) {
-            chunkTable.push_back(buffer);
+            chunkVector.push_back(buffer);
             buffer = new char [chunkSize];
             chunkNo++;
         }
@@ -34,13 +31,12 @@ void Dechunker::dechunk()
     }
 }
 
-void Dechunker::saveChunksToDisk()
-{
+void Dechunker::saveChunksToDisk() {
     int chunkNo = 0;
     if (!std::filesystem::is_directory(filename+"_chunks")){
         std::filesystem::create_directory(filename+"_chunks");
     }
-    for (auto chunk : chunkTable) {
+    for (auto chunk : chunkVector) {
         std::string outFileName = filename+"_chunks"+"/"+std::to_string(chunkNo)+".chunk";
         outFile.open(outFileName, std::ios::binary | std::ios::out | std::ios::trunc);
         outFile.write(chunk, this->chunkSize);
@@ -51,17 +47,17 @@ void Dechunker::saveChunksToDisk()
 
 }
 
-size_t Dechunker::getNumberOfChunks(){
-    return chunkTable.size();
+size_t Dechunker::getNumberOfChunks() {
+    return chunkVector.size();
 }
 
-unsigned int Dechunker::getChunkSize(){
+unsigned int Dechunker::getChunkSize() {
     return chunkSize;
 }
 
-char *Dechunker::getChunkAt(size_t index){
-    if (index < chunkTable.size()) {
-        return chunkTable.at(index);
+char *Dechunker::getChunkAt(size_t index) {
+    if (index < chunkVector.size()) {
+        return chunkVector.at(index);
     } else {
         return nullptr;
     }

@@ -1,7 +1,6 @@
 #include "ItemUnpacker.h"
 
-ItemUnpacker::ItemUnpacker(std::string filename) : Unpacker (filename)
-{
+ItemUnpacker::ItemUnpacker(std::string filename) : Unpacker (filename) {
     BUFFER_SIZE = 64*32*4;
     PALETTE_SIZE = 64*8+64*24;
     CONVERTED_PALETTE_SIZE = PALETTE_SIZE/2*3;
@@ -10,13 +9,11 @@ ItemUnpacker::ItemUnpacker(std::string filename) : Unpacker (filename)
     
 }
 
-ItemUnpacker::~ItemUnpacker()
-{
+ItemUnpacker::~ItemUnpacker() {
     delete p;
 }
 
-int ItemUnpacker::unpack()
-{
+int ItemUnpacker::unpack() {
     if (inFile.is_open()) {
         std::cout << "File" << filename << " opened." << std::endl;
         dechunker->dechunk();
@@ -71,4 +68,8 @@ bool ItemUnpacker::saveAsPNG(std::string outFileName, char* palette) {
 
     image->setColorTable(this->colors);
     return image->save(QString::fromStdString(outFileName+".png"), "PNG");
+}
+
+std::string ItemUnpacker::getName() {
+    return "ItemUnpacker";
 }

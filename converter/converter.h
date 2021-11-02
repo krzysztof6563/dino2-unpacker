@@ -6,8 +6,7 @@
 /**
  * @brief The Converter class, virutal class for all converteers
  */
-class Converter
-{
+class Converter {
 public:
     Converter();
 

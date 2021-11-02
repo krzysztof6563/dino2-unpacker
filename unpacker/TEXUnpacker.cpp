@@ -1,7 +1,6 @@
 #include "TEXUnpacker.h"
 
-TEXUnpacker::TEXUnpacker(std::string filename) : Unpacker (filename)
-{
+TEXUnpacker::TEXUnpacker(std::string filename) : Unpacker (filename) {
     this->dechunker->dechunk();
     auto size = this->dechunker->getNumberOfChunks();
     //load chunks data to rgb555 array;
@@ -58,4 +57,8 @@ bool TEXUnpacker::saveAsPNG(std::string outFileName, int offset, int imageHeight
     image->setColorTable(this->colors);
     std::cout << "Saving image data to "+outFileName+".png" << std::endl;
     return image->save(QString::fromStdString(outFileName+".png"), "PNG");
+}
+
+std::string TEXUnpacker::getName() {
+    return "TEXUnpacker";
 }

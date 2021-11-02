@@ -8,23 +8,22 @@
 #include <QPixmap>
 #include <QString>
 #include <QRgb>
-#include <QDebug>
 #include <QVector>
 
 class ItemUnpacker : public Unpacker {
-public:
-    ItemUnpacker(std::string filename);
-    ~ItemUnpacker();
+    public:
+        ItemUnpacker(std::string filename);
+        ~ItemUnpacker();
 
-    int unpack();
-    bool saveAsPNG(std::string outFileName, char* palette);
+        int unpack();
+        bool saveAsPNG(std::string outFileName, char* palette);
+        std::string getName();
 
-    std::vector<unsigned char> outData;
-    QVector<QRgb> colors;
-    std::string unpackerName = "ItemUnpacker";
+        std::vector<unsigned char> outData;
+        QVector<QRgb> colors;
 
-private:
-    PaletteConverter *p;
+    private:
+        PaletteConverter *p;
 };
 
 #endif // ITEMUNPACKER_H

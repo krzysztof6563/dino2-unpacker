@@ -1,12 +1,10 @@
 #include "paletteconverter.h"
 
-PaletteConverter::PaletteConverter(int paletteSize) : PALETTE_SIZE(paletteSize)
-{
+PaletteConverter::PaletteConverter(int paletteSize) : PALETTE_SIZE(paletteSize) {
 
 }
 
-PaletteConverter::~PaletteConverter()
-{
+PaletteConverter::~PaletteConverter() {
 
 }
 
@@ -14,8 +12,7 @@ PaletteConverter::~PaletteConverter()
  * @brief PaletteConverter::convert Cenverts rgb555 palette to rgb888
  * @return void
  */
-int PaletteConverter::convert()
-{
+int PaletteConverter::convert() {
     int newI = 0;
     for (int i=0; i<PALETTE_SIZE; i+=2) {
         char byte1 = palette[i];
@@ -40,22 +37,18 @@ int PaletteConverter::convert()
     return 1;
 }
 
-char *PaletteConverter::getNewPalette() const
-{
+char *PaletteConverter::getNewPalette() const {
     return newPalette;
 }
 
-void PaletteConverter::setNewPalette(char *value)
-{
+void PaletteConverter::setNewPalette(char *value) {
     newPalette = value;
 }
 
-char *PaletteConverter::getPalette() const
-{
+char *PaletteConverter::getPalette() const {
     return palette;
 }
 
-void PaletteConverter::setPalette(char *value)
-{
+void PaletteConverter::setPalette(char *value) {
     palette = value;
 }

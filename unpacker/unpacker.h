@@ -20,6 +20,7 @@ public:
 
     virtual int unpack() = 0;
     virtual void allocateVariables();
+    virtual std::string getName() = 0;
 
     int getBUFFER_SIZE() const;
     void setBUFFER_SIZE(int value);

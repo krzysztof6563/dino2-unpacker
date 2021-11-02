@@ -1,4 +1,4 @@
-#include "doorunpacker.h"
+#include "DoorUnpacker.h"
 
 DoorUnpacker::DoorUnpacker(std::string filename) : Unpacker (filename) {
     BUFFER_SIZE = 64*32*4;
@@ -179,7 +179,7 @@ void DoorUnpacker::dumpUnknownFile(int restSize) {
 }
 
 void DoorUnpacker::dumpRemainingFile(int FILESIZE, int chunks) {
-    std::cout << "Dumping image, palette and model data to respective files." << std::endl;
+    std::cout << "Saving image, palette and model data to respective files." << std::endl;
     //we do know how many chunks we need to extract
     int sizeOfChunks = chunks*dechunker->getChunkSize();
     int modelSize = FILESIZE - sizeOfChunks - dechunker->getChunkSize();
@@ -215,4 +215,8 @@ void DoorUnpacker::dumpRemainingFile(int FILESIZE, int chunks) {
     delete[] model;
     delete[] palette;
     delete[] image;
+}
+
+std::string DoorUnpacker::getName() {
+    return "DoorUnpacker";
 }

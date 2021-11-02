@@ -1,39 +1,22 @@
 #include "StageDBSUnpacker.h"
 
-StageDBSUnpacker::StageDBSUnpacker(std::string filename) : Unpacker (filename)
-{
-    BUFFER_SIZE = 64*32*4;
-    PALETTE_SIZE = 64*8+64*24;
-    CONVERTED_PALETTE_SIZE = PALETTE_SIZE/2*3;
-    this->allocateVariables();
-    p = new PaletteConverter(PALETTE_SIZE);
-    
+StageDBSUnpacker::StageDBSUnpacker(std::string filename) : Unpacker (filename){
+
 }
 
-StageDBSUnpacker::~StageDBSUnpacker()
-{
+StageDBSUnpacker::~StageDBSUnpacker() {
     delete p;
 }
 
-int StageDBSUnpacker::unpack()
-{
+int StageDBSUnpacker::unpack() {
     if (inFile.is_open()) {
         std::cout << "File" << filename << " opened." << std::endl;
         dechunker->dechunk();
-        // dechunker->saveChunksToDisk();
         size_t total = dechunker->getNumberOfChunks();
         int imageNumber = 0;
 
         for (int i=0; i<dechunker->getNumberOfChunks(); i++) {
-            char* chunk = dechunker->getChunkAt(i);
-            // std::cout << "Chunk " << i << ": ";
-            // for (size_t j = 0; j < dechunker->getChunkSize(); j++)
-            // {
-            //     printf("%02X ", chunk[j]);
-            // }
-            // std::cout << std::endl;
-
-            if (this->isChunkJPEGStart(chunk)) {
+            if (this->isChunkJPEGStart(dechunker->getChunkAt(i))) {
                 jpegStartPoints.push_back(i);
             }
         }
@@ -49,13 +32,19 @@ int StageDBSUnpacker::unpack()
 
         for (size_t i = 0; i < jpegStartPoints.size() - 1; i++) {
             size_t startIndex = jpegStartPoints.at(i);
-            std::cout << "[INFO] JPEG start found in chunk " << startIndex << std::endl;
-            std::string outFilename = filename+"_jpgs" + "/" + std::to_string(i) + ".jpg";
+            std::cout << "[DEBUG] JPEG start found in chunk " << startIndex << std::endl;
+
+            std::ostringstream newName;
+            newName.fill('0');
+            newName << filename << "_jpgs/" << std::setw(2) << i << ".jpg";
+            std::string outFilename = newName.str();
+            
             outFile.open(outFilename, std::fstream::binary);
             for (size_t j = startIndex; j < jpegStartPoints[i+1]; j++) {
                 outFile.write(dechunker->getChunkAt(j), dechunker->getChunkSize());
             }
             outFile.close();
+            
             std::cout << "[INFO] JPEG saved as " << outFilename << std::endl;
         }
         
@@ -67,7 +56,7 @@ int StageDBSUnpacker::unpack()
         std::cout << "[DEBUG] Closed file " << filename << std::endl;
 
     } else {
-        std::cout << "Error opening  " << filename;
+        std::clog << "Error opening  " << filename;
     }
     return 0;
 }
@@ -80,4 +69,8 @@ bool StageDBSUnpacker::isChunkJPEGStart(char* chunk) {
     }
 
     return true;
+}
+
+std::string StageDBSUnpacker::getName() {
+    return "StageDBSUnpacker";
 }

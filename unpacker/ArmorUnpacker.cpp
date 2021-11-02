@@ -1,10 +1,9 @@
-#include "armorunpacker.h"
+#include "ArmorUnpacker.h"
 
 ArmorUnpacker::ArmorUnpacker(std::string filename) : Unpacker (filename) {
 }
 
-int ArmorUnpacker::unpack()
-{
+int ArmorUnpacker::unpack() {
     dechunker->dechunk();
     size_t length = dechunker->getNumberOfChunks();
     outFile.open(filename+".out", std::ios::out | std::ios::binary | std::ios::trunc);
@@ -15,4 +14,8 @@ int ArmorUnpacker::unpack()
     outFile.flush();
     outFile.close();
     return 0;
+}
+
+std::string ArmorUnpacker::getName() {
+    return "ArmorUnpacker";
 }
