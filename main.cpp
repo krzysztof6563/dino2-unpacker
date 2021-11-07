@@ -35,7 +35,7 @@ Supported file formats:
 | E*.DAT       | ❌         | Enemy data 3D models, WAVE, RGB555 textures (optional)         |
 | ENDING.DAT   | ❌         | WAVE files                                                     |
 | ENTRY.DAT    | ❌         | Dino colliseum portraits                                       |
-| FILE.DAT     | ❌         | Dino File images stored as RGB555 with pallette                |
+| FILE.DAT     | ✅         | Dino File images stored as RGB555 with pallette                |
 | GAMEOVER.DAT | ❌         |                                                                |
 | ITEM.DAT     | ✅         | Saves images as PNGs                                           |
 | KOF_*.DAT    | ❌         | Sound effects in WAVE format                                   |
