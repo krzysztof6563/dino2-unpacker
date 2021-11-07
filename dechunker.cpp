@@ -7,9 +7,9 @@ Dechunker::Dechunker(std::string filename) {
 }
 
 Dechunker::~Dechunker() {
-    // for (auto chunk : chunkVector) {
-    //     delete[] chunk;
-    // }
+    for (auto chunk : chunkVector) {
+        delete[] chunk;
+    }
     chunkVector.clear();
     delete[] buffer;
 }

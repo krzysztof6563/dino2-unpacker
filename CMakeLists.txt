@@ -11,7 +11,7 @@ file(GLOB dino2-unpacker_SRC
 )
 
 set (CMAKE_CXX_FLAGS "-std=c++17 ")
-find_package(Qt5 REQUIRED Gui Core)
+find_package(Qt6 REQUIRED Gui Core)
 
 add_executable(${PROJECT_NAME} ${dino2-unpacker_SRC})
-target_link_libraries(${PROJECT_NAME} Qt5::Gui)
+target_link_libraries(${PROJECT_NAME} Qt6::Gui)

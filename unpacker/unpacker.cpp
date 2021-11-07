@@ -10,7 +10,7 @@ Unpacker::~Unpacker() {
     // delete[] buffer;
     // delete[] palette;
     // delete[] newPalette;
-    // delete dechunker;
+    delete dechunker;
 }
 
 void Unpacker::allocateVariables() {
