@@ -21,6 +21,7 @@ public:
     virtual int unpack() = 0;
     virtual void allocateVariables();
     virtual std::string getName() = 0;
+    // virtual bool saveAsPng(std::string outFileName);
 
     int getBUFFER_SIZE() const;
     void setBUFFER_SIZE(int value);

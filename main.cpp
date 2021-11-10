@@ -104,15 +104,19 @@ int main(int argc, char *argv[]) {
     if (argc > 1){
         for (int i=1; i<argc; i++) {
             std::string filename(argv[i]);
-            Unpacker *u = getUnpackerByFilename(filename);
-            if (u != nullptr) {
-                std::cout << "[INFO] Choosen Unpacker type: " << u->getName() << std::endl;
-                u->unpack();
-                std::cout << "[INFO] Unpacked: " << filename << std::endl;
+            if (std::filesystem::exists(filename)) {
+                Unpacker *u = getUnpackerByFilename(filename);
+                if (u != nullptr) {
+                    std::cout << "[INFO] Choosen Unpacker type: " << u->getName() << std::endl;
+                    u->unpack();
+                    std::cout << "[INFO] Unpacked: " << filename << std::endl;
+                } else {
+                    std::cout << "[ERROR] File type not supported" << std::endl;
+                }
+                delete u;
             } else {
-                std::cout << "[ERROR] File type not supported" << std::endl;
+                std::cout << "[ERROR] File " << filename << " not found" << std::endl;
             }
-            delete u;
         }
     } else {
         displayHelp();

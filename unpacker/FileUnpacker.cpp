@@ -9,17 +9,29 @@ int FileUnpacker::unpack() {
     int numberOfchunks = this->dechunker->getNumberOfChunks();
     int numberOfImages = numberOfchunks / 7;
 
+    if (!std::filesystem::is_directory(filename+"_pngs")){
+        std::filesystem::create_directory(filename+"_pngs");
+    }
+
     for (size_t i = 0; i < numberOfImages; i++)
     {
         this->rgb555Data.clear();
         this->paletteData.clear();
-        for (size_t j = 0; j < 6; j++)
+        for (size_t j = 0; j < 6; j+=2)
         {
             char* chunk = dechunker->getChunkAt(i*7 + j);
-            for (size_t k = 0; k < this->dechunker->getChunkSize(); k++) {
-                this->rgb555Data.push_back(chunk[k]);
+            char* chunk2 = dechunker->getChunkAt(i*7 + j + 1);
+
+            for (size_t k = 0; k < 64; k++)
+            {
+                char* activeChunk = chunk;
+                if (k%2 !=0) {
+                    activeChunk = chunk2;
+                }
+                for (size_t l = 0; l < 64; l++) {
+                    this->rgb555Data.push_back(activeChunk[k/2*64 + l]);
+                }
             }
-            
         }
 
         char* palletteChunk = this->dechunker->getChunkAt(i*7 + 6);
@@ -28,7 +40,7 @@ int FileUnpacker::unpack() {
         }
         paletteData = this->converter->convert(paletteData);
 
-        this->saveAsPNG(this->filename + "_" + std::to_string(i));
+        this->saveAsPNG(this->filename + "_pngs/" + std::to_string(i));
     }
     
     // }
@@ -42,8 +54,8 @@ int FileUnpacker::unpack() {
 */
 bool FileUnpacker::saveAsPNG(std::string outFileName) {
     int headerOffset = this->dechunker->getChunkSize();
-
-    auto image = new QImage(&this->rgb555Data[0], 64, 32 * 6, QImage::Format::Format_Indexed8, nullptr, nullptr);
+    this->colors.clear();
+    auto image = new QImage(&this->rgb555Data[0], 128, 32 * 3, QImage::Format::Format_Indexed8, nullptr, nullptr);
     for (size_t i = 0; i<paletteData.size(); i += 3) {
         this->colors.push_back((new QColor(paletteData[i], paletteData[i+1], paletteData[i+2]))->rgb());
     }

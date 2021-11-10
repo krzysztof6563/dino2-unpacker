@@ -16,14 +16,19 @@ class ItemUnpacker : public Unpacker {
         ~ItemUnpacker();
 
         int unpack();
-        bool saveAsPNG(std::string outFileName, char* palette);
+        bool saveAsPNG(std::string outFileName);
         std::string getName();
 
         std::vector<unsigned char> outData;
         QVector<QRgb> colors;
+        std::unique_ptr<RGBConverter> converter;
+        std::vector<unsigned char> paletteData;
 
     private:
         PaletteConverter *p;
+        int width = 64*2;
+        int height = 2*32;
+
 };
 
 #endif // ITEMUNPACKER_H
