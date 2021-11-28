@@ -64,11 +64,7 @@ int ItemUnpacker::unpack() {
             // outFile.close();
             // outFilePalette.close();
             
-            if (this->saveAsIndexedPNG("ITEM_pngs/" + this->filename + std::to_string(imageNumber))) {
-                std::cout << "[INFO] Saved as ITEM_pngs/" << this->filename << std::to_string(imageNumber) << ".png" << std::endl;
-            } else {
-                std::cout << "[ERROR] Can't save as ITEM_pngs/" << this->filename << std::to_string(imageNumber) << ".png" << std::endl;
-            }
+            this->saveAsIndexedPNG("ITEM_pngs/" + this->filename + std::to_string(imageNumber));
         }
         inFile.close();
 

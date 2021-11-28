@@ -8,31 +8,7 @@ Unpacker::Unpacker(std::string filename) {
 }
 
 Unpacker::~Unpacker() {
-    // delete[] buffer;
-    // delete[] palette;
-    // delete[] newPalette;
     delete dechunker;
-}
-
-void Unpacker::allocateVariables() {
-    palette = new char[PALETTE_SIZE];
-    newPalette = new char[CONVERTED_PALETTE_SIZE];
-}
-
-int Unpacker::getPALETTE_SIZE() const {
-    return PALETTE_SIZE;
-}
-
-void Unpacker::setPALETTE_SIZE(int value) {
-    PALETTE_SIZE = value;
-}
-
-int Unpacker::getCONVERTED_PALETTE_SIZE() const {
-    return CONVERTED_PALETTE_SIZE;
-}
-
-void Unpacker::setCONVERTED_PALETTE_SIZE(int value) {
-    CONVERTED_PALETTE_SIZE = value;
 }
 
 char *Unpacker::getBuffer() const {
@@ -82,9 +58,15 @@ bool Unpacker::saveAsIndexedPNG(std::string fileNameBase, int offset) {
         this->colors.push_back((new QColor(paletteData[i], paletteData[i+1], paletteData[i+2]))->rgb());
     }
     image->setColorTable(this->colors);
-    std::cout << "Saving image data to "+fileNameBase+".png" << std::endl;
 
-    return image->save(QString::fromStdString(fileNameBase+".png"), "PNG");
+    bool result = image->save(QString::fromStdString(fileNameBase+".png"), "PNG");
+    if (result) {
+        std::cout << "[INFO] Saved image as " << fileNameBase << ".png" << std::endl;
+    } else {
+        std::cout << "[ERRO] There was an error while saving " << fileNameBase << ".png" << std::endl;
+    }
+
+    return result;
 }
 
 /**
@@ -94,8 +76,14 @@ bool Unpacker::saveAsIndexedPNG(std::string fileNameBase, int offset) {
 */
 bool Unpacker::saveAsRGB888PNG(std::string fileNameBase, int offset) {
     auto image = new QImage(&rgb888Data[0] + offset, this->PNG_WIDTH, this->PNG_HEIGHT, QImage::Format::Format_RGB888, nullptr, nullptr);
-    
-    return image->save(QString::fromStdString(fileNameBase+".png"), "PNG");
+    bool result = image->save(QString::fromStdString(fileNameBase+".png"), "PNG");
+    if (result) {
+        std::cout << "[INFO] Saved image as " << fileNameBase << ".png" << std::endl;
+    } else {
+        std::cout << "[ERRO] There was an error while saving " << fileNameBase << ".png" << std::endl;
+    }
+
+    return result;
 }
 
 void Unpacker::loadChunksToRGB555Vector() {

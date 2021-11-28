@@ -1,9 +1,6 @@
 #include "DoorUnpacker.h"
 
-DoorUnpacker::DoorUnpacker(std::string filename) : Unpacker (filename) {
-    PALETTE_SIZE = 64*8+64*24;
-    CONVERTED_PALETTE_SIZE = PALETTE_SIZE/2*3;
-}
+DoorUnpacker::DoorUnpacker(std::string filename) : Unpacker (filename) {}
 
 DoorUnpacker::~DoorUnpacker() {
     for (auto waveFile : WAVE_FILES) {
@@ -24,7 +21,7 @@ DoorUnpacker::~DoorUnpacker() {
 int DoorUnpacker::unpack() {
     if (inFile.is_open()) {
         unsigned long long int restSize = 0;
-        std::cout << "File " << filename << " opened." << std::endl;
+        std::cout << "[DEBUG] File " << filename << " opened." << std::endl;
         inFile.close();
         inFile.open(filename, std::ifstream::ate | std::ifstream::binary);
         unsigned long long int FILESIZE = inFile.tellg();
@@ -39,7 +36,7 @@ int DoorUnpacker::unpack() {
                 start -= 4;
                 //add new WaveFile to our vector
                 WAVE_FILES.push_back(new WaveFile(start));
-                std::cout << "Found WAVE start at " << start << " adding to vector." << std::endl ;
+                std::cout << "[DEBUG] Found WAVE start at " << start << " adding to vector." << std::endl ;
             }
         }
         //go back to beginning of file
@@ -49,7 +46,7 @@ int DoorUnpacker::unpack() {
         for (WaveFile* waveFile : WAVE_FILES) {
             inFile.seekg(waveFile->getStart());
             std::string outFilename = filename + "." + std::to_string(waveFiles) + ".WAV";
-            std::cout << "Extracting WAVE file to " << outFilename << std::endl;
+            std::cout << "[INFO] Extracting WAVE file to " << outFilename << std::endl;
             this->extractWAV(&inFile, outFilename, waveFile);
             waveFiles++;
         }
@@ -64,7 +61,7 @@ int DoorUnpacker::unpack() {
         int currentPos = inFile.tellg();
         std::string rs = std::to_string(restSize);
         int chunks = mapBytesToChunks(restSize);
-        std::cout << "Remaining bytes ----" << restSize << "-----" << std::endl;
+        std::cout << "[DEBUG] Remaining bytes ----" << restSize << "-----" << std::endl;
         if (chunks == 0) {
             //we don't know the data beyond this point, so we are just dumping it 
             this->dumpUnknownFile(restSize);
@@ -74,7 +71,7 @@ int DoorUnpacker::unpack() {
 
         inFile.close();
     } else {
-        std::cout << "Error opening  " << filename;
+        std::cout << "[ERROR] Error opening  " << filename;
     }
     return 0;
 }
@@ -98,7 +95,7 @@ void DoorUnpacker::extractWAV(std::ifstream *inFile, std::string outFilename, Wa
                       (unsigned char) WAVE_SIZE[1] << 8 |
                       (unsigned char) WAVE_SIZE[0] << 0 );
     waveFile->setSize(WAVE_FILE_SIZE);
-    std::cout << "Wave size: " << WAVE_FILE_SIZE << " bytes" << std::endl;
+    std::cout << "[DEBUG] Wave size: " << WAVE_FILE_SIZE << " bytes" << std::endl;
     // and now to make a new file in a memory (header and size info)
     WAVE_FILE = new char[WAVE_FILE_SIZE];
     for (int i = 0; i < 4; i++) {
@@ -147,7 +144,7 @@ int DoorUnpacker::mapBytesToChunks(int bytes) {
 
 void DoorUnpacker::dumpUnknownFile(int restSize) {
     char *rest = new char[restSize];
-    std::cout << "Unkown format. Extracting remaining data (" + std::to_string(restSize) + " bytes) to " << filename+".data" << std::endl;
+    std::cout << "[INFO] Unkown format. Extracting remaining data (" + std::to_string(restSize) + " bytes) to " << filename+".data" << std::endl;
     outFile.open(filename+".data", std::fstream::binary);
     inFile.read(rest, restSize);
     outFile.write(rest, restSize);
@@ -162,7 +159,7 @@ void DoorUnpacker::dumpUnknownFile(int restSize) {
  * @param chunks Number of chunks that image is embedded in
  */
 void DoorUnpacker::dumpRemainingFile(int restSize, int chunks) {
-    std::cout << "Saving image, palette and model data to respective files." << std::endl;
+    std::cout << "[INFO] Saving image, palette and model data to respective files." << std::endl;
     int sizeOfChunks = chunks * dechunker->getChunkSize(); //!< Size of image
     int modelSize = restSize - sizeOfChunks - dechunker->getChunkSize(); //!< Size of 3D data (LEFT - IMAGE - palette)
     // inFile.ignore(this->dechunker->getChunkSize());
@@ -186,7 +183,7 @@ void DoorUnpacker::dumpRemainingFile(int restSize, int chunks) {
     this->paletteData = this->converter->convert(paletteData);
 
     for (size_t i = 0; i < sizeOfChunks; i++) {
-        this->rgb888Data.push_back(image[i]);
+        this->rgb555Data.push_back(image[i]);
     }
 
     
@@ -198,7 +195,7 @@ void DoorUnpacker::dumpRemainingFile(int restSize, int chunks) {
     outFile.write(model, modelSize);
     outFile.close();
 
-    this->height = chunks * 32;
+    this->PNG_HEIGHT = chunks * 32;
     this->saveAsIndexedPNG(filename);
 
     delete[] model;

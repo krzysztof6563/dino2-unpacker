@@ -21,15 +21,8 @@ public:
     virtual ~Unpacker();
 
     virtual int unpack() = 0;
-    virtual void allocateVariables();
     virtual std::string getName() = 0;
     // virtual bool saveAsPng(std::string outFileName);
-
-    int getPALETTE_SIZE() const;
-    void setPALETTE_SIZE(int value);
-
-    int getCONVERTED_PALETTE_SIZE() const;
-    void setCONVERTED_PALETTE_SIZE(int value);
 
     char *getBuffer() const;
     void setBuffer(char *value);
@@ -54,8 +47,6 @@ public:
     void loadChunksToRGB555Vector();
 
 protected:
-    int PALETTE_SIZE;
-    int CONVERTED_PALETTE_SIZE;
     int PNG_WIDTH = 64;
     int PNG_HEIGHT = 64;
 
@@ -73,9 +64,9 @@ protected:
 
     void convertToRGB888();
 
-    std::vector<unsigned char> rgb555Data;
-    std::vector<unsigned char> rgb888Data;
-    std::vector<unsigned char> paletteData;
+    std::vector<uint8_t> rgb555Data;
+    std::vector<uint8_t> rgb888Data;
+    std::vector<uint8_t> paletteData;
     QVector<QRgb> colors;
     bool isConverted = false; 
 
