@@ -15,7 +15,7 @@ Dechunker::~Dechunker() {
 }
 
 void Dechunker::dechunk() {
-    if (inFile.is_open()){
+    if (inFile.is_open() && !this->isDechunked){
         std::cout << "[DEBUG] Beginnig dechunking process" << std::endl;
         const std::filesystem::path path = filename;
         auto size = std::filesystem::file_size(path);
@@ -28,10 +28,15 @@ void Dechunker::dechunk() {
             chunkNo++;
         }
         std::cout << "[DEBUG] Finished dechunking process" << std::endl;
+        this->isDechunked = true;
     }
 }
 
 void Dechunker::saveChunksToDisk() {
+    if (!this->isDechunked) {
+        this->dechunk();
+    }
+    
     int chunkNo = 0;
     if (!std::filesystem::is_directory(filename+"_chunks")){
         std::filesystem::create_directory(filename+"_chunks");

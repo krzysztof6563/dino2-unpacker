@@ -2,7 +2,6 @@
 #define WPUNPACKER_H
 
 #include "unpacker.h"
-#include "../converter/RGBConverter.h"
 #include <string>
 #include <vector>
 #include <QPixmap>
@@ -20,8 +19,6 @@ class WPUnpacker : public Unpacker {
         const int PALLETTE_CHUNK = 33;
         
         int width = 64;
-
-        std::vector<unsigned char> paletteData;
 };
 
 #endif // WPUNPACKER_H

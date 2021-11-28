@@ -2,7 +2,6 @@
 #define FileUnpacker_H
 
 #include "unpacker.h"
-#include "../converter/RGBConverter.h"
 #include <string>
 #include <vector>
 #include <QPixmap>
@@ -17,11 +16,7 @@ class FileUnpacker : public Unpacker {
         bool saveAsPNG(std::string filename);
         std::string getName();
 
-        std::vector<unsigned char> paletteData;
-
-        std::unique_ptr<RGBConverter> converter;
         bool isConverted = false; 
-
 };
 
 #endif // FileUnpacker_H

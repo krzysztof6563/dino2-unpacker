@@ -2,15 +2,7 @@
 
 TEXUnpacker::TEXUnpacker(std::string filename) : Unpacker (filename) {
     this->dechunker->dechunk();
-    auto size = this->dechunker->getNumberOfChunks();
-    //load chunks data to rgb555 array;
-    for (size_t i=0; i<this->dechunker->getNumberOfChunks(); i++) {
-        auto chunk = this->dechunker->getChunkAt(i);
-        for (int j=0; j<dechunker->getChunkSize(); j++) {
-            this->rgb555Data.push_back(chunk[j]);
-        }
-    }
-    this->converter = std::unique_ptr<RGBConverter>(new RGBConverter());
+    this->loadChunksToRGB555Vector();
 }
 
 int TEXUnpacker::unpack() {
@@ -24,17 +16,18 @@ int TEXUnpacker::unpack() {
     }
     paletteData = this->converter->convert(paletteData);
 
-    this->saveAsPNG(this->filename, 0, imageHeight);
+    this->PNG_HEIGHT = imageHeight;
+    this->saveAsIndexedPNG(this->filename, this->dechunker->getChunkSize());
 
     if (numberOfchunks == 66) {
         paletteData.clear();
-        palette = this->dechunker->getChunkAt(numberOfchunks-1);
+        palette = this->dechunker->getChunkAt(numberOfchunks);
         for(size_t j = 0; j<this->dechunker->getChunkSize(); j++) {
             paletteData.push_back(palette[j]);
         }
         paletteData = this->converter->convert(paletteData);
 
-        this->saveAsPNG(this->filename+"_2", (34-1)*this->dechunker->getChunkSize(), imageHeight);
+        this->saveAsIndexedPNG(this->filename+"_2", (34)*this->dechunker->getChunkSize());
     }
     return 1;
 }

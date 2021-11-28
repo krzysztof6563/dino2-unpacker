@@ -1,17 +1,13 @@
 #include "DoorUnpacker.h"
 
 DoorUnpacker::DoorUnpacker(std::string filename) : Unpacker (filename) {
-    BUFFER_SIZE = 64*32*4;
     PALETTE_SIZE = 64*8+64*24;
     CONVERTED_PALETTE_SIZE = PALETTE_SIZE/2*3;
-    this->allocateVariables();
-    p = new PaletteConverter(PALETTE_SIZE);
-
 }
 
 DoorUnpacker::~DoorUnpacker() {
-    for (auto p : WAVE_FILES) {
-        delete p;
+    for (auto waveFile : WAVE_FILES) {
+        delete waveFile;
     }
     WAVE_FILES.clear();
 }
@@ -57,31 +53,25 @@ int DoorUnpacker::unpack() {
             this->extractWAV(&inFile, outFilename, waveFile);
             waveFiles++;
         }
-        /* seekg to last byte of last wave file, and find next byte that isn't 0x00
-         * It marks the start of bitmap for current door   
-         * It's usually this:  
-         * 02 07 00 05 00 00 00 00 02 07 00 15 00 00 00 00 02 07 00 0A 13  
-         * Read chunks, check if starts with 0x00? 
-        */
-        inFile.seekg(WAVE_FILES.back()->getSize()+WAVE_FILES.back()->getStart());
-        while (inFile.read(tmp, 1)) {
-            if (tmp[0] != 0x00) {
-                unsigned long long int restSize = FILESIZE-inFile.tellg()+1;
-                int currentPos = inFile.tellg();
-                inFile.seekg(currentPos-1);
-                std::string rs = std::to_string(restSize);
-                int chunks = mapBytesToChunks(restSize);
-                std::cout << "Remaining bytes ----" << restSize << "-----" << std::endl;
-                if (chunks == 0) {
-                    //we don't know the data beyond this point, so we are just dumping it 
-                    this->dumpUnknownFile(restSize);
-                    break;
-                } else {
-                    this->dumpRemainingFile(FILESIZE, chunks);
-                    break;
-                }
-            }
+        
+        /* seek to nearest full chunk */
+        int currentPosition = WAVE_FILES.back()->getSize() + WAVE_FILES.back()->getStart(); 
+        float currentChunk = ceil(currentPosition / (float)this->dechunker->getChunkSize());
+
+        inFile.seekg(currentChunk * this->dechunker->getChunkSize());;
+        std::cout << "[DEBUG] Curernt position: " << inFile.tellg() << ". Chunk: " << currentChunk << std::endl;
+        restSize = FILESIZE-inFile.tellg();
+        int currentPos = inFile.tellg();
+        std::string rs = std::to_string(restSize);
+        int chunks = mapBytesToChunks(restSize);
+        std::cout << "Remaining bytes ----" << restSize << "-----" << std::endl;
+        if (chunks == 0) {
+            //we don't know the data beyond this point, so we are just dumping it 
+            this->dumpUnknownFile(restSize);
+        } else {
+            this->dumpRemainingFile(restSize, chunks);
         }
+
         inFile.close();
     } else {
         std::cout << "Error opening  " << filename;
@@ -135,32 +125,19 @@ int DoorUnpacker::mapBytesToChunks(int bytes) {
     switch (bytes) {
         case 49152:
         case 38912:
-            this->conv = true;
-            return 17;
-
         case 45056:
         case 43008:
         case 40960:
-            this->conv = false;
-            this->bytesToSkipInPalette = 15;
-            return 16;
+            return 17;
 
         case 20480:
-            //skip 15 bytes
-            this->conv = false;
-            this->bytesToSkipInPalette = 15;
             return 4;
 
         case 16384:
-            //skip 15 bytes
-            this->conv = false;
-            this->bytesToSkipInPalette = 15;
             return 5;
 
         case 22528:
             //idk what happens here
-            this->conv = false;
-            this->bytesToSkipInPalette = 15;
             return 8;
 
         default:
@@ -178,11 +155,16 @@ void DoorUnpacker::dumpUnknownFile(int restSize) {
     outFile.close();
 }
 
-void DoorUnpacker::dumpRemainingFile(int FILESIZE, int chunks) {
+/**
+ * Save image, palette, 3D data to files
+ *
+ * @param int restSize Bytes remaining in file (no header and WAVE files) 
+ * @param chunks Number of chunks that image is embedded in
+ */
+void DoorUnpacker::dumpRemainingFile(int restSize, int chunks) {
     std::cout << "Saving image, palette and model data to respective files." << std::endl;
-    //we do know how many chunks we need to extract
-    int sizeOfChunks = chunks*dechunker->getChunkSize();
-    int modelSize = FILESIZE - sizeOfChunks - dechunker->getChunkSize();
+    int sizeOfChunks = chunks * dechunker->getChunkSize(); //!< Size of image
+    int modelSize = restSize - sizeOfChunks - dechunker->getChunkSize(); //!< Size of 3D data (LEFT - IMAGE - palette)
     // inFile.ignore(this->dechunker->getChunkSize());
 
     char *image = new char[sizeOfChunks];
@@ -191,26 +173,33 @@ void DoorUnpacker::dumpRemainingFile(int FILESIZE, int chunks) {
 
     inFile.read(image, sizeOfChunks);
     inFile.read(palette, dechunker->getChunkSize());
+    inFile.ignore(this->dechunker->getChunkSize());
     inFile.read(model, modelSize);
 
     outFile.open(filename+".data", std::fstream::binary);
     outFile.write(image, sizeOfChunks);
     outFile.close();
 
-    if (this->conv) {
-        p->setPalette(palette);
-        p->setNewPalette(newPalette);
-        p->convert();
+    for (size_t i = 0; i < this->dechunker->getChunkSize(); i++) {
+        this->paletteData.push_back(palette[i]);
     }
+    this->paletteData = this->converter->convert(paletteData);
+
+    for (size_t i = 0; i < sizeOfChunks; i++) {
+        this->rgb888Data.push_back(image[i]);
+    }
+
     
     outFile.open(filename+".data.pal", std::fstream::binary);
-    outFile.write(newPalette+this->bytesToSkipInPalette, CONVERTED_PALETTE_SIZE-this->bytesToSkipInPalette);
-
+    for (auto c : paletteData) outFile << c;
     outFile.close();
 
     outFile.open(filename+".data.model", std::fstream::binary);
     outFile.write(model, modelSize);
     outFile.close();
+
+    this->height = chunks * 32;
+    this->saveAsIndexedPNG(filename);
 
     delete[] model;
     delete[] palette;

@@ -2,7 +2,8 @@
 
 FileUnpacker::FileUnpacker(std::string filename) : Unpacker (filename) {
     this->dechunker->dechunk();
-    this->converter = std::unique_ptr<RGBConverter>(new RGBConverter());
+    this->PNG_WIDTH = 128;
+    this->PNG_HEIGHT = 96;
 }
 
 int FileUnpacker::unpack() {
@@ -40,29 +41,10 @@ int FileUnpacker::unpack() {
         }
         paletteData = this->converter->convert(paletteData);
 
-        this->saveAsPNG(this->filename + "_pngs/" + std::to_string(i));
-    }
-    
-    // }
-    return 1;
-}
-
-/**
- * Saves coverted data to PNG image 
- * 
- * @param std::string outFileName
-*/
-bool FileUnpacker::saveAsPNG(std::string outFileName) {
-    int headerOffset = this->dechunker->getChunkSize();
-    this->colors.clear();
-    auto image = new QImage(&this->rgb555Data[0], 128, 32 * 3, QImage::Format::Format_Indexed8, nullptr, nullptr);
-    for (size_t i = 0; i<paletteData.size(); i += 3) {
-        this->colors.push_back((new QColor(paletteData[i], paletteData[i+1], paletteData[i+2]))->rgb());
+        this->saveAsIndexedPNG(this->filename + "_pngs/" + std::to_string(i));
     }
 
-    image->setColorTable(this->colors);
-    std::cout << "Saving image data to "+outFileName+".png" << std::endl;
-    return image->save(QString::fromStdString(outFileName+".png"), "PNG");
+    return 0;
 }
 
 std::string FileUnpacker::getName() {

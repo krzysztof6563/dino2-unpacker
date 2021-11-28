@@ -9,6 +9,8 @@
 #include <QDebug>
 #include <QVector>
 #include <QRgb>
+#include <QImage>
+#include <QColor>
 
 /**
  * @brief The Unpacker class, virutal class for all unpackers
@@ -23,20 +25,11 @@ public:
     virtual std::string getName() = 0;
     // virtual bool saveAsPng(std::string outFileName);
 
-    int getBUFFER_SIZE() const;
-    void setBUFFER_SIZE(int value);
-
     int getPALETTE_SIZE() const;
     void setPALETTE_SIZE(int value);
 
     int getCONVERTED_PALETTE_SIZE() const;
     void setCONVERTED_PALETTE_SIZE(int value);
-
-    int getTILE_SIZE() const;
-    void setTILE_SIZE(int value);
-
-    int getTILE_WIDTH() const;
-    void setTILE_WIDTH(int value);
 
     char *getBuffer() const;
     void setBuffer(char *value);
@@ -52,17 +45,19 @@ public:
     std::ofstream getOutFile() const;
     void setOutFile(const std::ofstream &value);
 
-    std::ofstream getOutFilePalette() const;
+    std::ofstream gesaveChunkstOutFilePalette() const;
     void setOutFilePalette(const std::ofstream &value);
 
-    std::string unpackerName;
+    bool saveChunks();
+    bool saveAsIndexedPNG(std::string fileNameBase, int offset = 0);
+    bool saveAsRGB888PNG(std::string fileNameBase, int offset = 0);
+    void loadChunksToRGB555Vector();
 
 protected:
-    int BUFFER_SIZE;
     int PALETTE_SIZE;
     int CONVERTED_PALETTE_SIZE;
-//    int TILE_SIZE;
-//    int TILE_WIDTH;
+    int PNG_WIDTH = 64;
+    int PNG_HEIGHT = 64;
 
     std::string filename;
 
@@ -80,9 +75,12 @@ protected:
 
     std::vector<unsigned char> rgb555Data;
     std::vector<unsigned char> rgb888Data;
+    std::vector<unsigned char> paletteData;
     QVector<QRgb> colors;
-    std::unique_ptr<RGBConverter> converter;
     bool isConverted = false; 
+
+    std::unique_ptr<RGBConverter> converter;
+
 
 };
 

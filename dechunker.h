@@ -26,6 +26,7 @@ private:
     uint numberOfChunks;
     std::ifstream inFile;
     std::ofstream outFile;
+    bool isDechunked = false;
 };
 
 #endif // DECHUNKER_H

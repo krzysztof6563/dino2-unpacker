@@ -2,10 +2,11 @@
 #define DOORUNPACKER_H
 
 #include "unpacker.h"
-#include "../converter/paletteconverter.h"
 #include <string>
 #include <map>
 #include "../files/WaveFile.h"
+#include <QImage>
+#include <cmath>
 
 /**
  * @brief The DoorUnpacker class, used to unpack DOOR*.DAT files
@@ -27,7 +28,7 @@ class DoorUnpacker : public Unpacker {
         int mapBytesToChunks(int bytes);
         void dumpUnknownFile(int restSize);
         void dumpRemainingFile(int FILESIZE, int chunks);
-
+        bool saveAsPNG(std::string outFilename);
 
         int DUMMY_HEADER_SIZE = 0xA00; //!< Size of dummy header at the beginnig of file
         uint32_t WAVE_FILE_SIZE; //!< Size of embeded wave file
@@ -38,11 +39,10 @@ class DoorUnpacker : public Unpacker {
         char *WAVE_FILE; //!< Pointer to array containing wave file data
         char tmp[4]; //!< Holds "RIFF" value from wave file
         char oneByteBuffer;
-        PaletteConverter *p;
         std::vector<WaveFile*> WAVE_FILES;
         const char *RIFF_HEADER = "RIFF";
-
-        std::string unpackerName = "DoorUnpacker";
+        int width = 64;
+        int height = 0;
 };
 
 #endif // DOORUNPACKER_H

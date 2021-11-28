@@ -1,7 +1,8 @@
 #include "ItemUnpacker.h"
 
 ItemUnpacker::ItemUnpacker(std::string filename) : Unpacker (filename) {
-    this->converter = std::unique_ptr<RGBConverter>(new RGBConverter());
+    this->PNG_WIDTH = 128;
+    this->PNG_HEIGHT = 64;
 }
 
 ItemUnpacker::~ItemUnpacker() {
@@ -10,7 +11,7 @@ ItemUnpacker::~ItemUnpacker() {
 int ItemUnpacker::unpack() {
     if (inFile.is_open()) {
         std::cout << "File" << filename << " opened." << std::endl;
-        dechunker->dechunk();
+        this->dechunker->dechunk();
         size_t total = dechunker->getNumberOfChunks();
         int imageNumber = 0;
         if (!std::filesystem::is_directory("ITEM_pngs")){
@@ -18,11 +19,12 @@ int ItemUnpacker::unpack() {
         }
         for (size_t i = 0; i < total; i += 5, imageNumber++) {
             // char output[255];
-            outData.clear();
+            rgb555Data.clear();
             //add check if file is opened
             // sprintf(output, "%s%04d.data", filename.c_str(), imageNumber);
             // outFile.open(output, std::fstream::binary | std::fstream::trunc);
             // printf("Creating %s\n", output);
+
             for (size_t j = 0; j < 4; j+=2) {
                 auto chunk = dechunker->getChunkAt(i+j);
                 auto chunk2 = dechunker->getChunkAt(i+j+1);
@@ -34,7 +36,7 @@ int ItemUnpacker::unpack() {
                         activeChunk = chunk2;
                     }
                     for (size_t l = 0; l < 64; l++) {
-                        this->outData.push_back(activeChunk[k/2*64 + l]);
+                        this->rgb555Data.push_back(activeChunk[k/2*64 + l]);
                     }
                 }
             }
@@ -62,10 +64,10 @@ int ItemUnpacker::unpack() {
             // outFile.close();
             // outFilePalette.close();
             
-            if (this->saveAsPNG("ITEM_pngs/" + this->filename + std::to_string(imageNumber))) {
-                std::cout << "[INFO] Saved as ITEM_pngs/" << this->filename << std::to_string(imageNumber) << std::endl;
+            if (this->saveAsIndexedPNG("ITEM_pngs/" + this->filename + std::to_string(imageNumber))) {
+                std::cout << "[INFO] Saved as ITEM_pngs/" << this->filename << std::to_string(imageNumber) << ".png" << std::endl;
             } else {
-                std::cout << "[ERROR] Can't save as ITEM_pngs/" << this->filename << std::to_string(imageNumber) << std::endl;
+                std::cout << "[ERROR] Can't save as ITEM_pngs/" << this->filename << std::to_string(imageNumber) << ".png" << std::endl;
             }
         }
         inFile.close();
@@ -74,18 +76,6 @@ int ItemUnpacker::unpack() {
         std::cout << "Error opening  " << filename;
     }
     return 0;
-}
-
-bool ItemUnpacker::saveAsPNG(std::string outFileName) {
-    auto image = new QImage(&outData[0], this->width, this->height, QImage::Format::Format_Indexed8, nullptr, nullptr);
-    this->colors.clear();
-    for (size_t i = 0; i<paletteData.size(); i += 3) {
-        auto color = QColor(paletteData.at(i), paletteData.at(i + 1), paletteData.at(i + 2));
-        this->colors.push_back(color.rgb());
-    }
-    image->setColorTable(this->colors);
-
-    return image->save(QString::fromStdString(outFileName+".png"), "PNG");
 }
 
 std::string ItemUnpacker::getName() {

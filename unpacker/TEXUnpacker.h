@@ -2,7 +2,6 @@
 #define TEXUNPACKER_H
 
 #include "unpacker.h"
-#include "../converter/RGBConverter.h"
 #include <string>
 #include <vector>
 #include <QPixmap>
@@ -20,11 +19,6 @@ class TEXUnpacker : public Unpacker {
         const int PALLETTE_CHUNK = 33;
         
         int width = 64;
-
-
-        std::vector<unsigned char> paletteData;
-
-        std::unique_ptr<RGBConverter> converter;
         bool isConverted = false; 
 
 };

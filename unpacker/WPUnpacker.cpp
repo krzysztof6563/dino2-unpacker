@@ -2,15 +2,7 @@
 
 WPUnpacker::WPUnpacker(std::string filename) : Unpacker (filename) {
     this->dechunker->dechunk();
-    auto size = this->dechunker->getNumberOfChunks();
-    //load chunks data to rgb555 array;
-    for (size_t i=0; i<this->dechunker->getNumberOfChunks(); i++) {
-        auto chunk = this->dechunker->getChunkAt(i);
-        for (int j=0; j<dechunker->getChunkSize(); j++) {
-            this->rgb555Data.push_back(chunk[j]);
-        }
-    }
-    this->converter = std::unique_ptr<RGBConverter>(new RGBConverter());
+    this->loadChunksToRGB555Vector();
 }
 
 int WPUnpacker::unpack() {
@@ -20,22 +12,10 @@ int WPUnpacker::unpack() {
     }
     paletteData = this->converter->convert(paletteData);
 
-    this->saveAsPNG(this->filename);
+    this->PNG_HEIGHT = (this->dechunker->getNumberOfChunks()-2)*32;
+    this->saveAsIndexedPNG(this->filename, this->dechunker->getChunkSize());
 
     return 1;
-}
-
-bool WPUnpacker::saveAsPNG(std::string outFileName) {
-    int imageHeight = (this->dechunker->getNumberOfChunks()-2)*32;
-    int headerOffset = this->dechunker->getChunkSize();
-
-    auto image = new QImage(&rgb555Data[headerOffset], this->width, imageHeight, QImage::Format::Format_Indexed8, nullptr, nullptr);
-    for (size_t i = 0; i<paletteData.size(); i += 3) {
-        this->colors.push_back((new QColor(paletteData[i], paletteData[i+1], paletteData[i+2]))->rgb());
-    }
-
-    image->setColorTable(this->colors);
-    return image->save(QString::fromStdString(outFileName+".png"), "PNG");
 }
 
 std::string WPUnpacker::getName() {

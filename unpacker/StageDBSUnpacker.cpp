@@ -1,17 +1,13 @@
 #include "StageDBSUnpacker.h"
 
-StageDBSUnpacker::StageDBSUnpacker(std::string filename) : Unpacker (filename){
+StageDBSUnpacker::StageDBSUnpacker(std::string filename) : Unpacker (filename) {}
 
-}
-
-StageDBSUnpacker::~StageDBSUnpacker() {
-    delete p;
-}
+StageDBSUnpacker::~StageDBSUnpacker() {}
 
 int StageDBSUnpacker::unpack() {
     if (inFile.is_open()) {
         std::cout << "File" << filename << " opened." << std::endl;
-        dechunker->dechunk();
+        this->dechunker->dechunk();
         size_t total = dechunker->getNumberOfChunks();
         int imageNumber = 0;
 
