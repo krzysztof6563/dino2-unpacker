@@ -10,6 +10,7 @@
 #include "unpacker/TEXUnpacker.h"
 #include "unpacker/StageDBSUnpacker.h"
 #include "unpacker/FileUnpacker.h"
+#include "unpacker/ComingUnpacker.h"
 #include "dechunker.h"
 
 using namespace std;
@@ -78,6 +79,8 @@ https://www.gnu.org/licenses/gpl-3.0.html
 Unpacker *getUnpackerByFilename(std::string filename) {
     if (filename == "ITEM.DAT") {
         return new ItemUnpacker(filename);
+    } else if (filename == "COMING.DAT") {
+        return new ComingUnpacker(filename);
     } else if (filename == "FILE.DAT") {
         return new FileUnpacker(filename);
     } else if (filename.find("DOOR") != std::string::npos) {
