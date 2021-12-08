@@ -28,7 +28,7 @@ Supported file formats:
 | *.TEX        | ✅         | Saves images as PNGs                                           |
 | ARMOR*.DAT   | 🔨         | Implemented dechunking                                         |
 | CAPLOGO.DAT  | ❌         |                                                                |
-| COMING.DAT   | ❌         | RGB555 image with pallette                                     |
+| COMING.DAT   | ✅         | RGB555 image with pallette                                     |
 | CONTINUE.DAT | ❌         |                                                                |
 | CORE*.DAT    | ❌         | WAVE files                                                     |
 | DEMO*.TRG    | ❌         |                                                                |

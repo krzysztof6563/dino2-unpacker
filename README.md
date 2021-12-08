@@ -4,13 +4,13 @@ Utility for extracting data from Dino Crisis 2
 
 ## SUPPORTED FILES
 
-| FILE PATTERN | SUPPORTED | NOTES                                                          |
-| ------------ | --------- | -------------------------------------------------------------- |
+| FILE PATTERN | SUPPORTED  | NOTES                                                          |
+| ------------ | ---------  | -------------------------------------------------------------- |
 | *.PXL        | ✅         | Saves images as PNGs                                           |
 | *.TEX        | ✅         | Saves images as PNGs                                           |
 | ARMOR*.DAT   | 🔨         | Implemented dechunking                                         |
 | CAPLOGO.DAT  | ❌         |                                                                |
-| COMING.DAT   | ❌         | RGB555 image with pallette                                     |
+| COMING.DAT   | ✅         | RGB555 image with pallette                                     |
 | CONTINUE.DAT | ❌         |                                                                |
 | CORE*.DAT    | ❌         | WAVE files                                                     |
 | DEMO*.TRG    | ❌         |                                                                |

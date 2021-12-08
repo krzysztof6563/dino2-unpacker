@@ -51,7 +51,7 @@ bool Unpacker::saveChunks() {
  * @param std::string offset Offset from beginning of rgb555Data vector
 */
 bool Unpacker::saveAsIndexedPNG(std::string fileNameBase, int offset) {
-    auto image = new QImage(&this->rgb555Data[0] + offset, this->PNG_WIDTH, this->PNG_HEIGHT, QImage::Format::Format_Indexed8, nullptr, nullptr);
+    auto image = new QImage(this->rgb555Data.data() + offset, this->PNG_WIDTH, this->PNG_HEIGHT, QImage::Format::Format_Indexed8, nullptr, nullptr);
 
     this->colors.clear();
     for (size_t i = 0; i<paletteData.size(); i += 3) {
@@ -75,7 +75,7 @@ bool Unpacker::saveAsIndexedPNG(std::string fileNameBase, int offset) {
  * @param std::string outFileName
 */
 bool Unpacker::saveAsRGB888PNG(std::string fileNameBase, int offset) {
-    auto image = new QImage(&rgb888Data[0] + offset, this->PNG_WIDTH, this->PNG_HEIGHT, QImage::Format::Format_RGB888, nullptr, nullptr);
+    auto image = new QImage(this->rgb888Data.data() + offset, this->PNG_WIDTH, this->PNG_HEIGHT, QImage::Format::Format_RGB888, nullptr, nullptr);
     bool result = image->save(QString::fromStdString(fileNameBase+".png"), "PNG");
     if (result) {
         std::cout << "[INFO] Saved image as " << fileNameBase << ".png" << std::endl;
