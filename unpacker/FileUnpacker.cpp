@@ -18,22 +18,14 @@ int FileUnpacker::unpack() {
     {
         this->rgb555Data.clear();
         this->paletteData.clear();
-        for (size_t j = 0; j < 6; j+=2)
-        {
+        for (size_t j = 0; j < 6; j++) {
             char* chunk = dechunker->getChunkAt(i*7 + j);
-            char* chunk2 = dechunker->getChunkAt(i*7 + j + 1);
-
-            for (size_t k = 0; k < 64; k++)
-            {
-                char* activeChunk = chunk;
-                if (k%2 !=0) {
-                    activeChunk = chunk2;
-                }
-                for (size_t l = 0; l < 64; l++) {
-                    this->rgb555Data.push_back(activeChunk[k/2*64 + l]);
-                }
+            for (size_t k = 0; k < this->dechunker->getChunkSize(); k++) {
+                this->rgb555Data.push_back(chunk[k]);
             }
         }
+
+        this->rgb555Data = this->rearrangeChunks(2, 4, 0, this->rgb555Data);
 
         char* palletteChunk = this->dechunker->getChunkAt(i*7 + 6);
         for (size_t k = 0; k < this->dechunker->getChunkSize(); k++) {

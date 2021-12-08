@@ -42,9 +42,6 @@ public:
     void setOutFilePalette(const std::ofstream &value);
 
     bool saveChunks();
-    bool saveAsIndexedPNG(std::string fileNameBase, int offset = 0);
-    bool saveAsRGB888PNG(std::string fileNameBase, int offset = 0);
-    void loadChunksToRGB555Vector();
 
 protected:
     int PNG_WIDTH = 64;
@@ -63,6 +60,10 @@ protected:
     Dechunker *dechunker;
 
     void convertToRGB888();
+    bool saveAsIndexedPNG(std::string fileNameBase, int offset = 0);
+    bool saveAsRGB888PNG(std::string fileNameBase, int offset = 0);
+    void loadChunksToRGB555Vector();
+    std::vector<uint8_t> rearrangeChunks(int width, int height, int start, std::vector<uint8_t> initialData);
 
     std::vector<uint8_t> rgb555Data;
     std::vector<uint8_t> rgb888Data;

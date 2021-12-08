@@ -96,3 +96,27 @@ void Unpacker::loadChunksToRGB555Vector() {
         }
     }
 }
+
+std::vector<uint8_t> Unpacker::rearrangeChunks(int width, int height, int start, std::vector<uint8_t> initialData) {
+    int chunkSize = this->dechunker->getChunkSize();
+    int stop = width * height + start;
+    std::vector<uint8_t> newData;
+
+    for (size_t i = start; i < stop; i += width) { //rows of chunks for whole image
+        for (size_t j = 0; j < 32; j++) // rows for chunk height
+        {
+            for (size_t k = 0; k < width; k++) //loop over chunks in a row
+            {
+                int chunkStart = (i + k) * chunkSize;
+                int offset = (64 * j);
+                std::copy(
+                    initialData.begin() + chunkStart + offset, 
+                    initialData.begin() + chunkStart + offset + 64, 
+                    std::back_inserter(newData)
+                );
+            }
+        }
+    }
+
+    return newData;
+}
