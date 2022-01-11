@@ -60,7 +60,7 @@ Supported file formats:
 | ST*.DAT      | ❌         | Mix of files: RGB555 with palletee, WAVE RIFF files and others            |
 | ST*.DBS      | ✅         | Saves invidual images as PNGs                                             |
 | SUBSCR3.DAT  | ❌         |                                                                           |
-| SUBSCR6.DAT  | ❌         | RGB555 image with pallette, contains data for boat ride selection screeen |
+| SUBSCR6.DAT  | ✅         | RGB555 image with pallette, contains data for boat ride selection screeen |
 | TITLE.DAT    | ❌         | WAVE files                                                                |
 | TITLE2.DAT   | ❌         | WAVE files                                                                |
 | WARNING.DAT  | ❌         |                                                                           |
