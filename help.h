@@ -24,7 +24,7 @@ Supported file formats:
 | DOOR*.DAT    | 🔨         | Extracts textures and soudns, 3D model missing                            |
 | E*.DAT       | ❌         | Enemy data 3D models, WAVE, RGB555 textures (optional)                    |
 | ENDING.DAT   | ❌         | WAVE files                                                                |
-| ENTRY.DAT    | ❌         | Dino colliseum portraits and other data                                   |
+| ENTRY.DAT    | 🔨         | Dino colliseum portraits, some data after                                 |
 | FILE.DAT     | ✅         | Dino File images stored as RGB555 with pallette                           |
 | GAMEOVER.DAT | ❌         |                                                                           |
 | ITEM.DAT     | ✅         | Saves images as PNGs                                                      |
