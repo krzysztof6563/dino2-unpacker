@@ -13,7 +13,6 @@ class Subscr6Unpacker : public Unpacker {
         Subscr6Unpacker(std::string filename);
 
         int unpack();
-        bool saveAsPNG(std::string filename);
         std::string getName();
 
         const int PALLETTE_CHUNK = 50;
