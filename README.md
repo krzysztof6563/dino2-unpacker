@@ -39,14 +39,14 @@ Utility for extracting data from Dino Crisis 2
 | SAVE.DAT     | ❌         |                                                                           |
 | SC*.DAT      | ❌         | WAVE files, RGB555 with pallette                                          |
 | ST*.DAT      | ❌         | Mix of files: RGB555 with palletee, WAVE RIFF files and others            |
-| ST*.DBS      | ✅         | Saves invidual images as PNGs                                             |
+| ST*.DBS      | ✅         | Saves invidual images as JPGs                                             |
 | SUBSCR3.DAT  | ❌         |                                                                           |
 | SUBSCR6.DAT  | ✅         | RGB555 image with pallette, contains data for boat ride selection screeen |
 | TITLE.DAT    | ❌         | WAVE files                                                                |
 | TITLE2.DAT   | ❌         | WAVE files                                                                |
 | WARNING.DAT  | ❌         |                                                                           |
 | WEP_*.DAT    | ❌         | WAVE files                                                                |
-| WP*.DAT      | ✅         | Saves images as PNGs                                                      |
+| WP*.DAT      | 🔨         | Saves images as PNGs, additional data after images for 75A, 79A, 83A, 84A |
 
 ## AUTHOR
 Krzysztof Michalski
