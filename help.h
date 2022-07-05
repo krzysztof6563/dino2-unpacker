@@ -38,7 +38,6 @@ Supported file formats:
 | M_RESULT.DAT | ❌         | Possibly LAME MP3 Files                                                   |
 | MS_*.DAT     | ❌         | LAME MP3 Files (Background Sounds)                                        |
 | M_TITLE.DAT  | ❌         | WAVE files at bottom                                                      |
-| NO_DATA.PXL  | ❌         |                                                                           |
 | OPENING.DAT  | ❌         |                                                                           |
 | OPTION.DAT   | ❌         |                                                                           |
 | RES*.DAT     | ❌         |                                                                           |
