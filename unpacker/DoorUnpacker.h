@@ -28,7 +28,6 @@ class DoorUnpacker : public Unpacker {
         int mapBytesToChunks(int bytes);
         void dumpUnknownFile(int restSize);
         void dumpRemainingFile(int FILESIZE, int chunks);
-        bool saveAsPNG(std::string outFilename);
 
         int DUMMY_HEADER_SIZE = 0xA00; //!< Size of dummy header at the beginnig of file
         uint32_t WAVE_FILE_SIZE; //!< Size of embeded wave file

@@ -13,7 +13,6 @@ class ComingUnpacker : public Unpacker {
         ComingUnpacker(std::string filename);
 
         int unpack();
-        bool saveAsPNG(std::string filename);
         std::string getName();
 
         const int PALLETTE_CHUNK = 33;

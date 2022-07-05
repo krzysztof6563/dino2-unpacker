@@ -22,7 +22,6 @@ public:
 
     virtual int unpack() = 0;
     virtual std::string getName() = 0;
-    // virtual bool saveAsPng(std::string outFileName);
 
     char *getBuffer() const;
     void setBuffer(char *value);
@@ -62,6 +61,14 @@ protected:
     void convertToRGB888();
     bool saveAsIndexedPNG(std::string fileNameBase, int offset = 0);
     bool saveAsRGB888PNG(std::string fileNameBase, int offset = 0);
+    int extractImages(
+        unsigned int numberOfImages, 
+        unsigned int chunkHeight, 
+        unsigned int initialOffset = 1,
+        unsigned int rearrangeWidth = 0,
+        unsigned int rearrangeHeight = 0,
+        unsigned int rearrangeStart = 0
+    );
     void loadChunksToRGB555Vector();
     std::vector<uint8_t> rearrangeChunks(int width, int height, int start, std::vector<uint8_t> initialData);
 

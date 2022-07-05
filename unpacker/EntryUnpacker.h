@@ -1,5 +1,5 @@
-#ifndef FileUnpacker_H
-#define FileUnpacker_H
+#ifndef EntryUnpacker_H
+#define EntryUnpacker_H
 
 #include "unpacker.h"
 #include <string>
@@ -8,9 +8,9 @@
 #include <QString>
 #include <QRgb>
 
-class FileUnpacker : public Unpacker {
+class EntryUnpacker : public Unpacker {
     public:
-        FileUnpacker(std::string filename);
+        EntryUnpacker(std::string filename);
 
         int unpack();
         std::string getName();
@@ -18,4 +18,4 @@ class FileUnpacker : public Unpacker {
         bool isConverted = false; 
 };
 
-#endif // FileUnpacker_H
+#endif // EntryUnpacker_H

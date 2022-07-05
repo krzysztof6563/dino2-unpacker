@@ -15,7 +15,6 @@ class ItemUnpacker : public Unpacker {
         ~ItemUnpacker();
 
         int unpack();
-        bool saveAsPNG(std::string outFileName);
         std::string getName();
 };
 

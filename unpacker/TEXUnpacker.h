@@ -13,7 +13,6 @@ class TEXUnpacker : public Unpacker {
         TEXUnpacker(std::string filename);
 
         int unpack();
-        bool saveAsPNG(std::string filename, int offset, int imageHeight);
         std::string getName();
 
         const int PALLETTE_CHUNK = 33;

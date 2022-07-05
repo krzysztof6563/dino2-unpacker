@@ -70,6 +70,61 @@ bool Unpacker::saveAsIndexedPNG(std::string fileNameBase, int offset) {
 }
 
 /**
+ * Extracts images embeded in file
+ * 
+ * @param int How many images (sequential) to extract
+ * @param int How tall (in chunks) the image is
+ * @param int How many chunks from start of file to skip 
+ * @param int Passed to rearrange function
+ * @param int Passed to rearrange function
+ * @param int Passed to rearrange function
+ *  
+ */
+int Unpacker::extractImages(
+    unsigned int numberOfImages, 
+    unsigned int chunkHeight, 
+    unsigned int initialOffset,
+    unsigned int rearrangeWidth,
+    unsigned int rearrangeHeight,
+    unsigned int rearrangeStart
+) {
+    int numberOfchunks = this->dechunker->getNumberOfChunks();
+    int chunkSkip = chunkHeight + 1;
+    bool isSingleImage = numberOfImages == 1;
+
+    if (!isSingleImage && !std::filesystem::is_directory(this->filename+"_pngs")){
+        std::filesystem::create_directory(this->filename+"_pngs");
+    }
+
+    for (size_t i = 0; i < numberOfImages; i++)
+    {
+        this->rgb555Data.clear();
+        this->paletteData.clear();
+        for (size_t j = 0; j < chunkHeight; j++) {
+            char* chunk = dechunker->getChunkAt(i*chunkSkip + j + initialOffset);
+            for (size_t k = 0; k < this->dechunker->getChunkSize(); k++) {
+                this->rgb555Data.push_back(chunk[k]);
+            }
+        }
+
+        if (rearrangeWidth && rearrangeHeight) {
+            this->rgb555Data = this->rearrangeChunks(rearrangeWidth, rearrangeHeight, rearrangeStart, this->rgb555Data);    
+        }
+
+        char* palletteChunk = this->dechunker->getChunkAt(i*chunkSkip + chunkHeight + initialOffset);
+        for (size_t k = 0; k < this->dechunker->getChunkSize(); k++) {
+            this->paletteData.push_back(palletteChunk[k]);
+        }
+        paletteData = this->converter->convert(paletteData);
+
+        std::string outFileName = isSingleImage ? this->filename : this->filename + "_pngs/" + std::to_string(i);
+        this->saveAsIndexedPNG(outFileName);
+    }
+
+    return 0;
+}
+
+/**
  * Saves coverted data to RGB888 PNG image 
  * 
  * @param std::string outFileName
