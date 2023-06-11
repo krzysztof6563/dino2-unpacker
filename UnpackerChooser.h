@@ -12,6 +12,7 @@
 #include "unpacker/ComingUnpacker.h"
 #include "unpacker/Subscr6Unpacker.h"
 #include "unpacker/EntryUnpacker.h"
+#include "unpacker/WEPUnpacker.h"
 
 class UnpackerChooser {
     public:
@@ -40,6 +41,8 @@ class UnpackerChooser {
                 return new Subscr6Unpacker(filename);
             } else if (filename.find("ENTRY.DAT") != std::string::npos) {
                 return new EntryUnpacker(filename);
+            } else if (filename.find("WEP_") != std::string::npos) {
+                return new WEPUnpacker(filename);
             } else {
                 return new DechunkerUnpacker(filename);
             }

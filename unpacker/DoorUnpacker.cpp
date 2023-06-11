@@ -29,8 +29,8 @@ int DoorUnpacker::unpack() {
         /* seek to nearest full chunk */
         int currentPosition = WAVE_FILES.back()->getSize() + WAVE_FILES.back()->getStart(); 
         float currentChunk = ceil(currentPosition / (float)this->dechunker->getChunkSize());
-
         inFile.seekg(currentChunk * this->dechunker->getChunkSize());;
+        
         std::cout << "[DEBUG] Curernt position: " << inFile.tellg() << ". Chunk: " << currentChunk << std::endl;
         restSize = FILESIZE-inFile.tellg();
         int currentPos = inFile.tellg();

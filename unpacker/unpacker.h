@@ -61,6 +61,7 @@ protected:
     std::ifstream inFile;
     std::ofstream outFile;
     std::ofstream outFilePalette;
+    unsigned int inFileSize;
 
     Dechunker *dechunker;
 

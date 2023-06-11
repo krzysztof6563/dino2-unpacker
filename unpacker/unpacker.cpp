@@ -2,7 +2,11 @@
 
 Unpacker::Unpacker(std::string filename) {
     this->filename = filename;
-    this->inFile.open(filename.c_str(), std::ios::binary);
+    this->inFile.open(filename.c_str(), std::ios::binary | std::ios::ate);
+    if (this->inFile.is_open()) {
+        this->inFileSize = this->inFile.tellg();
+    }
+    this->inFile.seekg(0);
     std::cout << "[DEBUG] File " << filename << " opened." << '\n';
     dechunker = new Dechunker(filename);
     this->converter = std::unique_ptr<RGBConverter>(new RGBConverter());
