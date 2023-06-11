@@ -16,18 +16,18 @@ Dechunker::~Dechunker() {
 
 void Dechunker::dechunk() {
     if (inFile.is_open() && !this->isDechunked){
-        std::cout << "[DEBUG] Beginnig dechunking process" << std::endl;
+        std::cout << "[DEBUG] Beginnig dechunking process" << '\n';
         const std::filesystem::path path = filename;
         auto size = std::filesystem::file_size(path);
         numberOfChunks = size/chunkSize;
-        std::cout << "[DEBUG] Chunks to extract: " << numberOfChunks << std::endl;
+        std::cout << "[DEBUG] Chunks to extract: " << numberOfChunks << '\n';
         int chunkNo = 0;
         while (inFile.read(buffer, this->chunkSize)) {
             chunkVector.push_back(buffer);
             buffer = new char [chunkSize];
             chunkNo++;
         }
-        std::cout << "[DEBUG] Finished dechunking process" << std::endl;
+        std::cout << "[DEBUG] Finished dechunking process" << '\n';
         this->isDechunked = true;
     }
 }

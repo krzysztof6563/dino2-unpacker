@@ -4,7 +4,6 @@
 #include "unpacker.h"
 #include <string>
 #include <map>
-#include "../files/WaveFile.h"
 #include <QImage>
 #include <cmath>
 
@@ -24,22 +23,16 @@ class DoorUnpacker : public Unpacker {
         int bytesToSkipInPalette = 0;
         
     private:
-        void extractWAV(std::ifstream *inFile, std::string outFilename, WaveFile* waveFile);
         int mapBytesToChunks(int bytes);
         void dumpUnknownFile(int restSize);
         void dumpRemainingFile(int FILESIZE, int chunks);
 
         int DUMMY_HEADER_SIZE = 0xA00; //!< Size of dummy header at the beginnig of file
-        uint32_t WAVE_FILE_SIZE; //!< Size of embeded wave file
         int MODEL_SIZE; //!< Size of embeded 3d model
         int TEXTURE_SIZE; //!< Size of embeded texture
-        int waveFiles = 0; //!< Number of embeded wave files
 
-        char *WAVE_FILE; //!< Pointer to array containing wave file data
         char tmp[4]; //!< Holds "RIFF" value from wave file
         char oneByteBuffer;
-        std::vector<WaveFile*> WAVE_FILES;
-        const char *RIFF_HEADER = "RIFF";
         int width = 64;
         int height = 0;
 };

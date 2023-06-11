@@ -10,7 +10,7 @@ PXLUnpacker::PXLUnpacker(std::string filename) : Unpacker (filename) {
 int PXLUnpacker::unpack() {
     this->convertToRGB888();
     this->saveAsRGB888PNG(this->filename);
-    std::cout << "Saved as PNG file named: " << this->filename << ".png" << std::endl; 
+    std::cout << "Saved as PNG file named: " << this->filename << ".png" << '\n'; 
 
     return 1;
 }

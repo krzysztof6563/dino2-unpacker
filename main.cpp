@@ -46,20 +46,23 @@ int main(int argc, char *argv[]) {
         if (std::filesystem::exists(inputFile) && std::filesystem::is_regular_file(inputFile)) {
             Unpacker *u = UnpackerChooser::getUnpackerByFilename(inputFile);
             if (u != nullptr) {
-                std::cout << "[INFO] Choosen Unpacker type: " << u->getName() << std::endl;
+                std::cout << "[INFO] Choosen Unpacker type: " << u->getName() << '\n';
+                u->findAndExtractRIFFFiles();
                 u->unpack();
-                std::cout << "[INFO] Unpacked: " << inputFile << std::endl;
+                std::cout << "[INFO] Unpacked: " << inputFile << '\n';
 
                 if (globalOptions.saveChunks) {
                     u->saveChunks();
                 }
             } else {
-                std::cout << "[ERROR] File type not supported" << std::endl;
+                std::cout << "[ERROR] File type not supported" << '\n';
             }
             delete u;
         } else {
-            std::cout << "[ERROR] File " << inputFile << " not found" << std::endl;
+            std::cout << "[ERROR] File " << inputFile << " not found" << '\n';
         }
+
+        std::cout << "\n";
     }
 
     return 0;

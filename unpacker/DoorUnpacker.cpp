@@ -25,32 +25,7 @@ int DoorUnpacker::unpack() {
         inFile.close();
         inFile.open(filename, std::ifstream::ate | std::ifstream::binary);
         unsigned long long int FILESIZE = inFile.tellg();
-        inFile.seekg(0);
-        inFile.ignore(DUMMY_HEADER_SIZE);
-        //FIND ALL RIFF files in file
-        while (inFile.read(tmp, 4)) {
-            std::string b = tmp;
-            if (b == "RIFF") {
-                //go back 4 bytes to compensate for reading RIFF
-                std::streampos start = inFile.tellg();
-                start -= 4;
-                //add new WaveFile to our vector
-                WAVE_FILES.push_back(new WaveFile(start));
-                std::cout << "[DEBUG] Found WAVE start at " << start << " adding to vector." << std::endl ;
-            }
-        }
-        //go back to beginning of file
-        inFile.clear();
-        inFile.seekg(0);
-        //extract all found RIFF files
-        for (WaveFile* waveFile : WAVE_FILES) {
-            inFile.seekg(waveFile->getStart());
-            std::string outFilename = filename + "." + std::to_string(waveFiles) + ".WAV";
-            std::cout << "[INFO] Extracting WAVE file to " << outFilename << std::endl;
-            this->extractWAV(&inFile, outFilename, waveFile);
-            waveFiles++;
-        }
-        
+
         /* seek to nearest full chunk */
         int currentPosition = WAVE_FILES.back()->getSize() + WAVE_FILES.back()->getStart(); 
         float currentChunk = ceil(currentPosition / (float)this->dechunker->getChunkSize());
@@ -73,42 +48,8 @@ int DoorUnpacker::unpack() {
     } else {
         std::cout << "[ERROR] Error opening  " << filename;
     }
+    
     return 0;
-}
-
-/**
- * @brief DoorUnpacker::extractWAV, extract embeded wave file
- *
- * Wave structure (simplified):
- *
- * RIFF header (4 bytes) + file size (little endian) (4 bytes) + rest of file
- * @param inFile
- * @param outFilename
- */
-void DoorUnpacker::extractWAV(std::ifstream *inFile, std::string outFilename, WaveFile* waveFile) {
-    inFile->ignore(4);
-    char WAVE_SIZE[4];
-    inFile->read(WAVE_SIZE, 4);
-    // convert size header so we can use it
-    WAVE_FILE_SIZE = 8+((unsigned char) WAVE_SIZE[3] << 24 |
-                      (unsigned char) WAVE_SIZE[2] << 16 |
-                      (unsigned char) WAVE_SIZE[1] << 8 |
-                      (unsigned char) WAVE_SIZE[0] << 0 );
-    waveFile->setSize(WAVE_FILE_SIZE);
-    std::cout << "[DEBUG] Wave size: " << WAVE_FILE_SIZE << " bytes" << std::endl;
-    // and now to make a new file in a memory (header and size info)
-    WAVE_FILE = new char[WAVE_FILE_SIZE];
-    for (int i = 0; i < 4; i++) {
-        WAVE_FILE[i] = this->RIFF_HEADER[i];
-        WAVE_FILE[i+4] = WAVE_SIZE[i];
-    }
-    // start at 8th byte in new wave file (size of header and size info)
-    // in consequence we have to read 8 bytes less than actual size 
-    inFile->read(WAVE_FILE+8, WAVE_FILE_SIZE-8); 
-    outFile.open(outFilename, std::fstream::binary);
-    outFile.write(WAVE_FILE, WAVE_FILE_SIZE);
-    outFile.close();
-    delete[] WAVE_FILE;
 }
 
 int DoorUnpacker::mapBytesToChunks(int bytes) {

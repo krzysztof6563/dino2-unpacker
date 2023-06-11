@@ -6,7 +6,6 @@ StageDBSUnpacker::~StageDBSUnpacker() {}
 
 int StageDBSUnpacker::unpack() {
     if (inFile.is_open()) {
-        std::cout << "File" << filename << " opened." << std::endl;
         this->dechunker->dechunk();
         size_t total = dechunker->getNumberOfChunks();
         int imageNumber = 0;
@@ -23,12 +22,12 @@ int StageDBSUnpacker::unpack() {
             }
             jpegStartPoints.push_back(dechunker->getNumberOfChunks());
         } else {
-            std::cout << "[INFO] No JPEG files found" << std::endl;
+            std::cout << "[INFO] No JPEG files found" << '\n';
         }
 
         for (size_t i = 0; i < jpegStartPoints.size() - 1; i++) {
             size_t startIndex = jpegStartPoints.at(i);
-            std::cout << "[DEBUG] JPEG start found in chunk " << startIndex << std::endl;
+            std::cout << "[DEBUG] JPEG start found in chunk " << startIndex << '\n';
 
             std::ostringstream newName;
             newName.fill('0');
@@ -41,7 +40,7 @@ int StageDBSUnpacker::unpack() {
             }
             outFile.close();
             
-            std::cout << "[INFO] JPEG saved as " << outFilename << std::endl;
+            std::cout << "[INFO] JPEG saved as " << outFilename << '\n';
         }
         
         // if (!std::filesystem::is_directory("ITEM_u")){
@@ -49,7 +48,7 @@ int StageDBSUnpacker::unpack() {
         // }
         
         inFile.close();
-        std::cout << "[DEBUG] Closed file " << filename << std::endl;
+        std::cout << "[DEBUG] Closed file " << filename << '\n';
 
     } else {
         std::clog << "Error opening  " << filename;

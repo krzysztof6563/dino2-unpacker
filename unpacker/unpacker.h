@@ -4,13 +4,14 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include "../converter/RGBConverter.h"
-#include "../dechunker.h"
 #include <QDebug>
 #include <QVector>
 #include <QRgb>
 #include <QImage>
 #include <QColor>
+#include "../converter/RGBConverter.h"
+#include "../dechunker.h"
+#include "../files/WaveFile.h"
 
 /**
  * @brief The Unpacker class, virutal class for all unpackers
@@ -31,14 +32,19 @@ public:
     char *getNewPalette() const;
     void setNewPalette(char *value);
 
-    std::ifstream getInFile() const;
-    void setInFile(const std::ifstream &value);
+    int findAndExtractRIFFFiles();
+    void findRIFFFiles();
+    void extractAllRIFFFIles();
 
-    std::ofstream getOutFile() const;
-    void setOutFile(const std::ofstream &value);
 
-    std::ofstream gesaveChunkstOutFilePalette() const;
-    void setOutFilePalette(const std::ofstream &value);
+    // std::ifstream getInFile() const;
+    // void setInFile(const std::ifstream &value);
+
+    // std::ofstream getOutFile() const;
+    // void setOutFile(const std::ofstream &value);
+
+    // std::ofstream gesaveChunkstOutFilePalette() const;
+    // void setOutFilePalette(const std::ofstream &value);
 
     bool saveChunks();
 
@@ -80,6 +86,9 @@ protected:
 
     std::unique_ptr<RGBConverter> converter;
 
+    std::vector<WaveFile*> WAVE_FILES;
+    void extractRIFFFile(std::string outFilename, WaveFile* waveFile);
+    const char *RIFF_HEADER = "RIFF";
 
 };
 
