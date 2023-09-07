@@ -111,8 +111,48 @@ void DoorUnpacker::dumpRemainingFile(int restSize, int chunks) {
 
     inFile.read(image, sizeOfChunks);
     inFile.read(palette, dechunker->getChunkSize());
-    inFile.ignore(this->dechunker->getChunkSize());
-    inFile.read(model, modelSize);
+    // inFile.ignore(this->dechunker->getChunkSize());
+    // inFile.read(model, modelSize);
+    uint16_t vertexOffset, pad, normalOffset, TriangleOffset, QuadOffset, VertexCount, ObjectCount;
+    uint16_t data[10 + 12];
+    // inFile.read((char*)&vertexOffset, sizeof(vertexOffset));
+    // inFile.read((char*)&pad, sizeof(pad));
+    // inFile.read((char*)&normalOffset, sizeof(normalOffset));
+    // inFile.read((char*)&pad, sizeof(pad));
+    // inFile.read((char*)&TriangleOffset, sizeof(TriangleOffset));
+    // inFile.read((char*)&pad, sizeof(pad));
+    // // inFile.read((char*)&QuadOffset, sizeof(QuadOffset));
+    // // inFile.read((char*)&pad, sizeof(pad));
+    // inFile.read((char*)&VertexCount, sizeof(VertexCount));
+    // inFile.read((char*)&pad, sizeof(pad));
+    // inFile.read((char*)&ObjectCount, sizeof(ObjectCount));
+    // inFile.read((char*)&pad, sizeof(pad));
+
+    // // inFile.ignore(24);
+    // inFile.ignore(2*4);
+    // uint16_t triangleOffset, quadOffset, triangleCount, quadCount;
+    // inFile.read((char*)&triangleOffset, sizeof(triangleOffset));
+    // inFile.ignore(2);
+    // inFile.read((char*)&quadOffset, sizeof(quadOffset));
+    // inFile.ignore(2);
+    // inFile.read((char*)&triangleCount, sizeof(triangleCount));
+    // inFile.read((char*)&quadCount, sizeof(quadCount));
+    for (size_t i = 0; i < 10+12; i++)
+    {
+        inFile.read((char*)&data[i], 2);
+    }
+    
+    int j = 0;
+    std::cout << "MAIN HEADER" << "\n";
+    
+    for (auto i : data) {
+        std::cout << std::dec << i << "\t";
+        if (j == 23) {
+            std::cout << "\n\n" << "OBJECT HEADER" << "\n";
+        }
+        j++;
+    }
+    std::cout << "\n\n";
 
     outFile.open(filename+".data", std::fstream::binary);
     outFile.write(image, sizeOfChunks);
