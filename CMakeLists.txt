@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 project(dino2-unpacker)
 
 file(GLOB dino2-unpacker_SRC
@@ -10,8 +10,9 @@ file(GLOB dino2-unpacker_SRC
     "unpacker/*.cpp"
 )
 
-set (CMAKE_CXX_FLAGS "-std=c++17 ")
-find_package(Qt5 REQUIRED Gui Core)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+find_package(Qt6 REQUIRED Gui Core)
 
 add_executable(${PROJECT_NAME} ${dino2-unpacker_SRC})
-target_link_libraries(${PROJECT_NAME} Qt5::Gui)
+target_link_libraries(${PROJECT_NAME} Qt6::Gui)
