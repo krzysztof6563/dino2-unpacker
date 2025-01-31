@@ -19,8 +19,8 @@ void Dechunker::dechunk() {
         std::cout << "[DEBUG] Beginnig dechunking process" << '\n';
         const std::filesystem::path path = filename;
         auto size = std::filesystem::file_size(path);
-        numberOfChunks = size/chunkSize;
-        std::cout << "[DEBUG] Chunks to extract: " << numberOfChunks << '\n';
+        this->numberOfChunks = size/chunkSize;
+        std::cout << "[DEBUG] Chunks to extract: " << this->numberOfChunks << '\n';
         int chunkNo = 0;
         while (inFile.read(buffer, this->chunkSize)) {
             chunkVector.push_back(buffer);

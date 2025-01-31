@@ -23,7 +23,7 @@ private:
     unsigned int chunkSize = 64*32;
     char *buffer;
     std::vector<char*> chunkVector;
-    uint numberOfChunks;
+    unsigned int numberOfChunks;
     std::ifstream inFile;
     std::ofstream outFile;
     bool isDechunked = false;
