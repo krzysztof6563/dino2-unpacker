@@ -22,7 +22,7 @@ jobs:
           - os: ubuntu-latest
             qt_arch: linux_gcc_64
           - os: windows-latest
-            qt_arch: win64_msvc2019_64
+            qt_arch: win64_msvc2022_64
 
     steps:
     - uses: actions/checkout@v3
