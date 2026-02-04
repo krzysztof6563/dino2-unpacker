@@ -9,6 +9,7 @@ on:
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
+  QT_VERSION: 6.10.*
 
 jobs:
   build:
@@ -28,7 +29,7 @@ jobs:
 
     - uses: jurplel/install-qt-action@v4
       with:
-        version: '6.*'
+        version: ${{ env.QT_VERSION }}
         arch: ${{ matrix.qt_arch }}
 
     - name: Configure CMake
