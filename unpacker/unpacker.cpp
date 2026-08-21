@@ -61,15 +61,15 @@ bool Unpacker::saveChunks() {
  * @param std::string offset Offset from beginning of rgb555Data vector
 */
 bool Unpacker::saveAsIndexedPNG(std::string fileNameBase, int offset) {
-    auto image = new QImage(this->rgb555Data.data() + offset, this->PNG_WIDTH, this->PNG_HEIGHT, QImage::Format::Format_Indexed8, nullptr, nullptr);
+    auto image = QImage(this->rgb555Data.data() + offset, this->PNG_WIDTH, this->PNG_HEIGHT, QImage::Format::Format_Indexed8, nullptr, nullptr);
 
     this->colors.clear();
     for (size_t i = 0; i<paletteData.size(); i += 3) {
-        this->colors.push_back((new QColor(paletteData[i], paletteData[i+1], paletteData[i+2]))->rgb());
+        this->colors.push_back(QColor(paletteData[i], paletteData[i+1], paletteData[i+2]).rgb());
     }
-    image->setColorTable(this->colors);
+    image.setColorTable(this->colors);
 
-    bool result = image->save(QString::fromStdString(fileNameBase+".png"), "PNG");
+    bool result = image.save(QString::fromStdString(fileNameBase+".png"), "PNG");
     if (result) {
         std::cout << "[INFO] Saved image as " << fileNameBase << ".png" << '\n';
     } else {
@@ -140,8 +140,8 @@ int Unpacker::extractImages(
  * @param std::string outFileName
 */
 bool Unpacker::saveAsRGB888PNG(std::string fileNameBase, int offset) {
-    auto image = new QImage(this->rgb888Data.data() + offset, this->PNG_WIDTH, this->PNG_HEIGHT, QImage::Format::Format_RGB888, nullptr, nullptr);
-    bool result = image->save(QString::fromStdString(fileNameBase+".png"), "PNG");
+    auto image = QImage(this->rgb888Data.data() + offset, this->PNG_WIDTH, this->PNG_HEIGHT, QImage::Format::Format_RGB888, nullptr, nullptr);
+    bool result = image.save(QString::fromStdString(fileNameBase+".png"), "PNG");
     if (result) {
         std::cout << "[INFO] Saved image as " << fileNameBase << ".png" << '\n';
     } else {
@@ -200,7 +200,9 @@ void Unpacker::findRIFFFiles() {
         {
             if (localBuffer[0] == 'R') {
                 // inFile.seekg((unsigned int)inFile.tellg() - 1);
-                inFile.read(localBuffer + 1, 3);
+                if (!inFile.read(localBuffer + 1, 3)) {
+                    break; // not enough bytes to form "RIFF"
+                }
 
                 if (strncmp(localBuffer, "RIFF", 4) == 0) {
                     unsigned int startPos = (unsigned int)inFile.tellg() - 4;

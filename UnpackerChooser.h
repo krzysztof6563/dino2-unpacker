@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+
 #include "unpacker/ItemUnpacker.h"
 #include "unpacker/DoorUnpacker.h"
 #include "unpacker/DechunkerUnpacker.h"
@@ -17,31 +19,32 @@
 class UnpackerChooser {
     public:
         static Unpacker *getUnpackerByFilename(std::string filename) {
-            if (filename == "ITEM.DAT") {
+            std::string base = std::filesystem::path(filename).filename().string();
+            if (base == "ITEM.DAT") {
                 return new ItemUnpacker(filename);
-            } else if (filename == "COMING.DAT") {
+            } else if (base == "COMING.DAT") {
                 return new ComingUnpacker(filename);
-            } else if (filename == "FILE.DAT") {
+            } else if (base == "FILE.DAT") {
                 return new FileUnpacker(filename);
-            } else if (filename.find("DOOR") != std::string::npos) {
+            } else if (base.find("DOOR") != std::string::npos) {
                 return new DoorUnpacker(filename);
-            } else if (filename.find("ARMOR") != std::string::npos ||
-                    filename.find("CAPLOGO.DAT") != std::string::npos ||
-                    filename.find("MAP.BIN") != std::string::npos) {
+            } else if (base.find("ARMOR") != std::string::npos ||
+                    base.find("CAPLOGO.DAT") != std::string::npos ||
+                    base.find("MAP.BIN") != std::string::npos) {
                 return new ArmorUnpacker(filename);
-            } else if (filename.find(".PXL") != std::string::npos) {
+            } else if (base.find(".PXL") != std::string::npos) {
                 return new PXLUnpacker(filename);
-            } else if (filename.find("WP") != std::string::npos) {
+            } else if (base.find("WP") != std::string::npos) {
                 return new WPUnpacker(filename);
-            } else if (filename.find(".TEX") != std::string::npos) {
+            } else if (base.find(".TEX") != std::string::npos) {
                 return new TEXUnpacker(filename);
-            } else if (filename.find(".DBS") != std::string::npos) {
+            } else if (base.find(".DBS") != std::string::npos) {
                 return new StageDBSUnpacker(filename);
-            } else if (filename.find("SUBSCR6.DAT") != std::string::npos) {
+            } else if (base.find("SUBSCR6.DAT") != std::string::npos) {
                 return new Subscr6Unpacker(filename);
-            } else if (filename.find("ENTRY.DAT") != std::string::npos) {
+            } else if (base.find("ENTRY.DAT") != std::string::npos) {
                 return new EntryUnpacker(filename);
-            } else if (filename.find("WEP_") != std::string::npos) {
+            } else if (base.find("WEP_") != std::string::npos) {
                 return new WEPUnpacker(filename);
             } else {
                 return new DechunkerUnpacker(filename);
