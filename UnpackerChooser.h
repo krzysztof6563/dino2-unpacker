@@ -15,6 +15,7 @@
 #include "unpacker/Subscr6Unpacker.h"
 #include "unpacker/EntryUnpacker.h"
 #include "unpacker/WEPUnpacker.h"
+#include "unpacker/ModelUnpacker.h"
 
 class UnpackerChooser {
     public:
@@ -46,6 +47,8 @@ class UnpackerChooser {
                 return new EntryUnpacker(filename);
             } else if (base.find("WEP_") != std::string::npos) {
                 return new WEPUnpacker(filename);
+            } else if (base == "CORE.DAT" || (base.size() == 7 && base[0] == 'E' && base.substr(3) == ".DAT")) {
+                return new ModelUnpacker(filename);
             } else {
                 return new DechunkerUnpacker(filename);
             }

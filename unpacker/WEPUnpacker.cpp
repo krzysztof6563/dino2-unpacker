@@ -1,4 +1,5 @@
 #include "WEPUnpacker.h"
+#include "DC2ModelExtractor.h"
 
 WEPUnpacker::WEPUnpacker(std::string filename) : Unpacker (filename) {
     this->dechunker->dechunk();
@@ -24,6 +25,7 @@ int WEPUnpacker::unpack() {
     this->outFile.write(buffer, bytesToRead);
 
     std::cout << "[INFO] Saved as " << outFilename << "\n"; 
+    DC2ModelExtractor::extract(filename);
 
     return 0;
 }
