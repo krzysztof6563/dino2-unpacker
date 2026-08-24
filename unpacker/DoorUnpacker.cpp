@@ -14,6 +14,7 @@ constexpr std::uint32_t SECTOR_SIZE = 0x800;
 constexpr std::uint32_t DIRECTORY_SIZE = 0x800;
 constexpr std::uint32_t ENTRY_SIZE = 0x20;
 constexpr char DUMMY_HEADER[] = "dummy header    ";
+constexpr float OBJ_SCALE = 0.001f;
 
 struct DirectoryEntry {
     std::uint32_t type;
@@ -24,6 +25,51 @@ struct DirectoryEntry {
 
 std::uint32_t alignToSector(std::uint32_t value) {
     return (value + SECTOR_SIZE - 1) & ~(SECTOR_SIZE - 1);
+}
+
+std::string fileNameOnly(const std::string& path) {
+    const std::size_t separator = path.find_last_of("/\\");
+    return separator == std::string::npos ? path : path.substr(separator + 1);
+}
+
+bool writeObjMaterial(const std::string& objName, const std::string& textureName) {
+    std::ofstream material(objName + ".mtl", std::ios::trunc);
+    if (!material) {
+        return false;
+    }
+    material << "# Dino Crisis 2 DOOR texture material\n"
+             << "newmtl door_texture\n"
+             << "Ka 1.000000 1.000000 1.000000\n"
+             << "Kd 1.000000 1.000000 1.000000\n"
+             << "Ks 0.000000 0.000000 0.000000\n"
+             << "d 1.000000\n"
+             << "illum 1\n"
+             << "map_Kd " << fileNameOnly(textureName) << '\n';
+    return static_cast<bool>(material);
+}
+
+std::vector<std::uint8_t> rearrangeDoorTiles(
+    const std::vector<unsigned char>& source,
+    std::size_t tileRowBytes,
+    std::size_t tileRows
+) {
+    constexpr std::size_t tilesAcross = 2;
+    constexpr std::size_t tilesDown = 8;
+    const std::size_t tileSize = tileRowBytes * tileRows;
+    if (source.size() != tilesAcross * tilesDown * tileSize) {
+        return {};
+    }
+    std::vector<std::uint8_t> result;
+    result.reserve(source.size());
+    for (std::size_t tileY = 0; tileY < tilesDown; ++tileY) {
+        for (std::size_t row = 0; row < tileRows; ++row) {
+            for (std::size_t tileX = 0; tileX < tilesAcross; ++tileX) {
+                const std::size_t offset = (tileY * tilesAcross + tileX) * tileSize + row * tileRowBytes;
+                result.insert(result.end(), source.begin() + offset, source.begin() + offset + tileRowBytes);
+            }
+        }
+    }
+    return result;
 }
 
 bool readAt(std::ifstream& file, std::uint32_t offset, std::vector<unsigned char>& data) {
@@ -76,12 +122,10 @@ bool exportDc2MeshesToObj(
     int textureWidth,
     int textureHeight,
     const std::string& outputName,
+    const std::string& doorFileName,
     bool rotateTriangleUvs
 ) {
-    std::ofstream output(outputName, std::ios::trunc);
-    if (!output.is_open()) {
-        return false;
-    }
+    std::ofstream output;
 
     std::size_t headerOffset = 0;
     std::size_t vertexBase = 1;
@@ -90,9 +134,6 @@ bool exportDc2MeshesToObj(
     std::size_t objectNumber = 0;
     const float uvWidth = textureWidth > 0 ? static_cast<float>(textureWidth) : 1.0f;
     const float uvHeight = textureHeight > 0 ? static_cast<float>(textureHeight) : 1.0f;
-
-    output << "# Dino Crisis 2 DOOR mesh export\n";
-    output << "# Only consecutive mesh headers with the confirmed layout are exported.\n";
 
     while (headerOffset + 0x30 <= data.size()) {
         const std::uint32_t vertexAddress = readU32(data, headerOffset);
@@ -156,12 +197,23 @@ bool exportDc2MeshesToObj(
             break;
         }
 
-        output << "o door_mesh_" << objectNumber << '\n';
+        if (!output.is_open()) {
+            output.open(outputName, std::ios::trunc);
+            if (!output) {
+                return false;
+            }
+            output << "# Dino Crisis 2 DOOR mesh export\n";
+            output << "# Only consecutive mesh headers with the confirmed layout are exported.\n";
+            output << "mtllib " << fileNameOnly(outputName + ".mtl") << '\n';
+            output << "usemtl door_texture\n";
+        }
+
+        output << "o door_mesh_" << fileNameOnly(doorFileName) << objectNumber << '\n';
         for (std::size_t i = 0; i < vertexCount; ++i) {
             const std::size_t offset = vertexOffset + i * 8;
-            output << "v " << static_cast<std::int16_t>(readU16(data, offset)) << ' '
-                   << static_cast<std::int16_t>(readU16(data, offset + 2)) << ' '
-                   << static_cast<std::int16_t>(readU16(data, offset + 4)) << '\n';
+            output << "v " << static_cast<std::int16_t>(readU16(data, offset)) * OBJ_SCALE << ' '
+                   << static_cast<std::int16_t>(readU16(data, offset + 2)) * OBJ_SCALE << ' '
+                   << static_cast<std::int16_t>(readU16(data, offset + 4)) * OBJ_SCALE << '\n';
         }
         for (std::size_t i = 0; i < vertexCount; ++i) {
             const std::size_t offset = normalOffset + i * 8;
@@ -305,29 +357,22 @@ int DoorUnpacker::unpack() {
         std::cout << "[ERROR] Failed to read model candidate.\n";
         return 1;
     }
-    outFile.open(filename + ".data.model", std::ios::binary | std::ios::trunc);
-    outFile.write(reinterpret_cast<const char*>(model.data()), model.size());
-    outFile.close();
-    std::cout << "[INFO] Saved type-5 model candidate (" << model.size()
-              << " bytes) to " << filename << ".data.model\n";
-
     std::vector<unsigned char> decompressedModel;
+    bool exportedObj = false;
     if (!decompressDc2Lzss(model, decompressedModel)) {
         std::cout << "[WARNING] Type-5 payload did not decode as DC2 LZSS; skipping model export.\n";
     } else {
-        outFile.open(filename + ".data.model.decompressed", std::ios::binary | std::ios::trunc);
-        outFile.write(reinterpret_cast<const char*>(decompressedModel.data()), decompressedModel.size());
-        outFile.close();
-
         const int textureWidth = bitmapEntry == nullptr ? 0 : static_cast<int>((bitmapEntry->reserved & 0xffff) * 2);
         const int textureHeight = bitmapEntry == nullptr ? 0 : static_cast<int>(bitmapEntry->reserved >> 16);
-        if (exportDc2MeshesToObj(
+        exportedObj = exportDc2MeshesToObj(
                 decompressedModel,
                 modelEntry->address,
                 textureWidth,
                 textureHeight,
                 filename + ".data.model.uvshift.obj",
-                true)) {
+                filename,
+                true);
+        if (exportedObj) {
             std::cout << "[INFO] Saved UV-shift experiment to " << filename
                       << ".data.model.uvshift.obj\n";
         }
@@ -340,10 +385,6 @@ int DoorUnpacker::unpack() {
         if (!readAt(inFile, bitmapOffset, texture) || !readAt(inFile, paletteOffset, texturePalette)) {
             std::cout << "[WARNING] Failed to read indexed texture preview.\n";
         } else {
-            outFile.open(filename + ".texture.indexed", std::ios::binary | std::ios::trunc);
-            outFile.write(reinterpret_cast<const char*>(texture.data()), texture.size());
-            outFile.close();
-
             const int textureWidth = static_cast<int>((bitmapEntry->reserved & 0xffff) * 2);
             const int textureHeight = static_cast<int>(bitmapEntry->reserved >> 16);
             const std::vector<unsigned char> textureRgb888 = converter->convert(texturePalette);
@@ -353,20 +394,45 @@ int DoorUnpacker::unpack() {
                     textureRgb888[i], textureRgb888[i + 1], textureRgb888[i + 2]
                 ).rgb());
             }
-            // Texture tiles are stored as 64x32 blocks, two blocks across and
-            // eight blocks down. Stitch scanlines from neighbouring blocks to
-            // make the raster layout used by the model UV coordinates.
-            const std::vector<std::uint8_t> tiledTexture = rearrangeChunks(2, 8, 0, texture);
+            const bool is4BitTexture = texturePalette.size() <= 0x20;
+            // Texture tiles are stored two across and eight down.  Standard
+            // doors use 8-bit 64x32-pixel tiles; the small DOOR1900 variant
+            // uses 4-bit 64x16-pixel tiles.
+            const std::size_t tileRowBytes = is4BitTexture ? 32 : 64;
+            const std::size_t tileRows = is4BitTexture ? 16 : 32;
+            const std::vector<std::uint8_t> tiledTexture = rearrangeDoorTiles(texture, tileRowBytes, tileRows);
+            if (tiledTexture.empty()) {
+                std::cout << "[WARNING] Unsupported indexed texture tile layout.\n";
+                return 0;
+            }
+            const int outputWidth = is4BitTexture ? 128 : 128;
+            const int outputHeight = static_cast<int>(tileRows * 8);
+            std::vector<std::uint8_t> indexedTexture;
+            if (is4BitTexture) {
+                indexedTexture.reserve(tiledTexture.size() * 2);
+                for (const std::uint8_t packed : tiledTexture) {
+                    indexedTexture.push_back(packed & 0x0f);
+                    indexedTexture.push_back(packed >> 4);
+                }
+            }
             QImage tiledTextureImage(
-                tiledTexture.data(),
-                textureWidth,
-                textureHeight,
+                is4BitTexture ? indexedTexture.data() : tiledTexture.data(),
+                outputWidth,
+                outputHeight,
                 QImage::Format::Format_Indexed8
             );
             tiledTextureImage.setColorTable(colorTable);
             if (tiledTextureImage.save(QString::fromStdString(filename + ".texture.tiled.png"), "PNG")) {
                 std::cout << "[INFO] Saved tile-reordered texture to " << filename
                           << ".texture.tiled.png\n";
+                if (exportedObj) {
+                    const std::string objName = filename + ".data.model.uvshift.obj";
+                    if (writeObjMaterial(objName, filename + ".texture.tiled.png")) {
+                        std::cout << "[INFO] Linked texture material to " << objName << '\n';
+                    } else {
+                        std::cout << "[WARNING] Failed to write OBJ material file.\n";
+                    }
+                }
             } else {
                 std::cout << "[WARNING] Failed to save tile-reordered texture.\n";
             }
