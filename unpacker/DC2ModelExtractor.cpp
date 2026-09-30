@@ -4,14 +4,87 @@
 #include <cstdint>
 #include <cmath>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <vector>
+
+#include <QColor>
+#include <QImage>
+#include <QVector>
 
 namespace {
 constexpr std::uint32_t sector = 0x800;
 struct Entry { std::uint32_t type, size, address, reserved; };
 std::uint32_t align(std::uint32_t n) { return (n + sector - 1) & ~(sector - 1); }
+
+std::vector<unsigned char> rearrangeTextureTiles(const std::vector<unsigned char>& source) {
+    constexpr std::size_t tilesAcross = 2;
+    constexpr std::size_t tilesDown = 8;
+    constexpr std::size_t tileWidth = 64;
+    constexpr std::size_t tileHeight = 32;
+    constexpr std::size_t tileSize = tileWidth * tileHeight;
+    if (source.size() != tilesAcross * tilesDown * tileSize) return {};
+
+    std::vector<unsigned char> result;
+    result.reserve(source.size());
+    for (std::size_t tileY = 0; tileY < tilesDown; ++tileY) {
+        for (std::size_t row = 0; row < tileHeight; ++row) {
+            for (std::size_t tileX = 0; tileX < tilesAcross; ++tileX) {
+                const std::size_t offset = (tileY * tilesAcross + tileX) * tileSize + row * tileWidth;
+                result.insert(result.end(), source.begin() + offset, source.begin() + offset + tileWidth);
+            }
+        }
+    }
+    return result;
+}
+
+bool saveResultTexture(const std::vector<unsigned char>& indexed,
+                       const std::vector<unsigned char>& palette,
+                       const std::string& outputName) {
+    const std::vector<unsigned char> pixels = rearrangeTextureTiles(indexed);
+    if (pixels.empty() || palette.size() != 0x200) return false;
+
+    QVector<QRgb> colors;
+    colors.reserve(256);
+    for (std::size_t i = 0; i < palette.size(); i += 2) {
+        const std::uint16_t value = static_cast<std::uint16_t>(palette[i]) |
+                                    (static_cast<std::uint16_t>(palette[i + 1]) << 8);
+        const int red = (value & 0x1f) * 255 / 31;
+        const int green = ((value >> 5) & 0x1f) * 255 / 31;
+        const int blue = ((value >> 10) & 0x1f) * 255 / 31;
+        colors.push_back(QColor(red, green, blue).rgb());
+    }
+
+    QImage image(128, 256, QImage::Format_Indexed8);
+    image.setColorTable(colors);
+    for (int y = 0; y < image.height(); ++y)
+        std::memcpy(image.scanLine(y), pixels.data() + y * image.width(), image.width());
+    return image.save(QString::fromStdString(outputName), "PNG");
+}
+
+bool writeResultMaterials(const std::string& modelName, unsigned textureCount) {
+    if (textureCount == 0) return false;
+    const std::string materialName = modelName + ".mtl";
+    std::ofstream out(materialName, std::ios::trunc);
+    if (!out) return false;
+    const std::string modelFileName = std::filesystem::path(modelName).filename().string();
+    const std::size_t modelSuffix = modelFileName.find(".model.");
+    const std::string texturePrefix = modelSuffix == std::string::npos
+                                        ? modelFileName
+                                        : modelFileName.substr(0, modelSuffix);
+    for (unsigned i = 0; i < textureCount; ++i) {
+        out << "newmtl result_texture_" << i << '\n'
+            << "Ka 1.000000 1.000000 1.000000\n"
+            << "Kd 1.000000 1.000000 1.000000\n"
+            << "Ks 0.000000 0.000000 0.000000\n"
+            << "d 1.000000\n"
+            << "illum 1\n"
+            << "map_Kd " << texturePrefix
+            << ".texture." << i << ".tiled.png\n\n";
+    }
+    return static_cast<bool>(out);
+}
 
 bool decompress(const std::vector<unsigned char>& in, std::vector<unsigned char>& out) {
     std::size_t src = 0;
@@ -163,6 +236,66 @@ bool exportExperimentalObj(const std::vector<unsigned char>& b, std::uint32_t ba
     return true;
 }
 
+// RESULT.DAT uses the same static vertex/normal/primitive layout as the
+// confirmed DOOR meshes.  Unlike E-models, its fourth vertex word is not a
+// joint index, so applying the experimental skeletal transforms corrupts it.
+bool exportStaticTexturedObj(const std::vector<unsigned char>& b, std::uint32_t base,
+                             const std::string& name) {
+    if (b.size() < 20) return false;
+    const std::uint32_t va = u32(b, 0), na = u32(b, 4), ta = u32(b, 8), qa = u32(b, 12);
+    if (va < base || na < base || ta < base || qa < base) return false;
+    const std::size_t v = va - base, n = na - base, t = ta - base, q = qa - base;
+    const std::size_t triangles = u16(b, 16), quads = u16(b, 18);
+    if (v != 0x30 || n < v || t < n || q < t || (n - v) % 8 || (t - n) % 8 ||
+        t + triangles * 12 > b.size() || q + quads * 16 > b.size()) return false;
+    const std::size_t vertices = (n - v) / 8;
+    if (vertices == 0) return false;
+
+    std::ofstream out(name, std::ios::trunc);
+    if (!out) return false;
+    out << "# Dino Crisis 2 RESULT static mesh\n"
+        << "# Texture-page/material assignment has not yet been decoded.\n"
+        << "mtllib " << std::filesystem::path(name + ".mtl").filename().string() << '\n'
+        << "usemtl result_texture_0\n"
+        << "o result_mesh_0\n";
+    for (std::size_t i = 0; i < vertices; ++i) {
+        const std::size_t o = v + i * 8;
+        out << "v " << static_cast<std::int16_t>(u16(b, o)) * 0.001f << ' '
+            << static_cast<std::int16_t>(u16(b, o + 2)) * 0.001f << ' '
+            << static_cast<std::int16_t>(u16(b, o + 4)) * 0.001f << '\n';
+    }
+    for (std::size_t i = 0; i < vertices; ++i) {
+        const std::size_t o = n + i * 8;
+        out << "vn " << static_cast<std::int16_t>(u16(b, o)) / 4096.0f << ' '
+            << static_cast<std::int16_t>(u16(b, o + 2)) / 4096.0f << ' '
+            << static_cast<std::int16_t>(u16(b, o + 4)) / 4096.0f << '\n';
+    }
+
+    // One UV is emitted per face corner, preserving the original mapping.
+    std::size_t uvIndex = 1;
+    const auto writeFace = [&](std::size_t offset, std::size_t count) {
+        std::array<std::size_t, 4> indices{};
+        std::array<std::size_t, 4> uvs{};
+        for (std::size_t i = 0; i < count; ++i) {
+            const std::size_t source = count == 4 && i >= 2 ? 5 - i : i;
+            indices[i] = u16(b, offset + source * 2);
+            if (indices[i] >= vertices) return false;
+            const std::size_t uvSource = count == 3 ? (i + 1) % 3 : source;
+            const std::size_t uv = offset + count * 2 + uvSource * 2;
+            out << "vt " << b[uv] / 128.0f << ' ' << 1.0f - b[uv + 1] / 256.0f << '\n';
+            uvs[i] = uvIndex++;
+        }
+        out << "f";
+        for (std::size_t i = 0; i < count; ++i)
+            out << ' ' << indices[i] + 1 << '/' << uvs[i] << '/' << indices[i] + 1;
+        out << '\n';
+        return true;
+    };
+    for (std::size_t i = 0; i < triangles; ++i) if (!writeFace(t + i * 12, 3)) return false;
+    for (std::size_t i = 0; i < quads; ++i) if (!writeFace(q + i * 16, 4)) return false;
+    return static_cast<bool>(out);
+}
+
 bool readClip3Frame0Rotations(const std::vector<unsigned char>& b, std::uint32_t base,
                               std::vector<std::array<std::int16_t, 3>>& rotations) {
     if (b.size() < 20) return false;
@@ -191,25 +324,57 @@ bool readClip3Frame0Rotations(const std::vector<unsigned char>& b, std::uint32_t
 int DC2ModelExtractor::extract(const std::string& filename) {
     std::ifstream input(filename, std::ios::binary);
     if (!input) return 1;
+    const bool isResult = std::filesystem::path(filename).filename() == "RESULT.DAT";
     std::uint32_t offset = sector;
     unsigned modelNumber = 0;
+    unsigned resultTextureNumber = 0;
+    std::vector<unsigned char> pendingResultTexture;
     for (std::uint32_t entryOffset = 0; entryOffset < sector; entryOffset += 0x20) {
         Entry entry{};
         input.seekg(entryOffset);
         input.read(reinterpret_cast<char*>(&entry), sizeof(entry));
         if (!input) return 1;
         if (std::memcmp(&entry.type, "dummy header    ", 16) == 0) break;
-        if (entry.type == 5) {
+        if (isResult && entry.type == 6) {
+            std::vector<unsigned char> packed(entry.size);
+            input.seekg(offset);
+            input.read(reinterpret_cast<char*>(packed.data()), packed.size());
+            std::vector<unsigned char> unpacked;
+            if (input && decompress(packed, unpacked) && unpacked.size() == 0x8000) {
+                pendingResultTexture = std::move(unpacked);
+            } else {
+                pendingResultTexture.clear();
+            }
+        } else if (isResult && entry.type == 2 && !pendingResultTexture.empty()) {
+            std::vector<unsigned char> palette(entry.size);
+            input.seekg(offset);
+            input.read(reinterpret_cast<char*>(palette.data()), palette.size());
+            const std::string textureName = filename + ".texture." + std::to_string(resultTextureNumber) + ".tiled.png";
+            if (input && saveResultTexture(pendingResultTexture, palette, textureName)) {
+                std::cout << "[INFO] Saved RESULT texture page: " << textureName << '\n';
+                ++resultTextureNumber;
+            }
+            pendingResultTexture.clear();
+        } else if (entry.type == 5) {
             std::vector<unsigned char> packed(entry.size);
             input.seekg(offset);
             input.read(reinterpret_cast<char*>(packed.data()), packed.size());
             if (!input) return 1;
             const std::string stem = filename + ".model." + std::to_string(modelNumber++);
-            std::ofstream(stem + ".compressed", std::ios::binary).write(reinterpret_cast<const char*>(packed.data()), packed.size());
             std::vector<unsigned char> unpacked;
             if (decompress(packed, unpacked)) {
-                std::ofstream(stem + ".decompressed", std::ios::binary).write(reinterpret_cast<const char*>(unpacked.data()), unpacked.size());
                 std::cout << "[INFO] Extracted DC2 model " << stem << " (" << packed.size() << " -> " << unpacked.size() << " bytes, load 0x" << std::hex << entry.address << std::dec << ")\n";
+                if (isResult) {
+                    if (exportStaticTexturedObj(unpacked, entry.address, stem + ".obj")) {
+                        std::cout << "[INFO] Saved RESULT static mesh OBJ: " << stem << ".obj\n";
+                    } else {
+                        std::cout << "[WARNING] RESULT type-5 block did not match the confirmed static mesh layout.\n";
+                    }
+                    offset += align(entry.size);
+                    continue;
+                }
+                std::ofstream(stem + ".compressed", std::ios::binary).write(reinterpret_cast<const char*>(packed.data()), packed.size());
+                std::ofstream(stem + ".decompressed", std::ios::binary).write(reinterpret_cast<const char*>(unpacked.data()), unpacked.size());
                 if (exportExperimentalObj(unpacked, entry.address, stem + ".experimental.obj")) {
                     std::cout << "[INFO] Saved experimental geometry OBJ: " << stem << ".experimental.obj\n";
                 }
@@ -230,6 +395,9 @@ int DC2ModelExtractor::extract(const std::string& filename) {
             }
         }
         offset += align(entry.size);
+    }
+    if (isResult && writeResultMaterials(filename + ".model.0.obj", resultTextureNumber)) {
+        std::cout << "[INFO] Saved RESULT texture material library.\n";
     }
     return 0;
 }

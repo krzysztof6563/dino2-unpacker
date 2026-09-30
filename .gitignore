@@ -10,3 +10,6 @@ cmake_install.cmake
 CMakeLists.txt.*
 game_assets/
 Makefile
+data
+dino2.cfg
+dino2.exe

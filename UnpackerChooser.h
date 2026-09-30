@@ -19,6 +19,16 @@
 
 class UnpackerChooser {
     public:
+        static bool isEnemyModelFile(const std::string& filename) {
+            constexpr std::size_t ENEMY_FILE_NAME_LENGTH = 7; // E00.DAT
+            constexpr std::size_t EXTENSION_OFFSET = 3;
+            constexpr const char* DAT_EXTENSION = ".DAT";
+
+            return filename.size() == ENEMY_FILE_NAME_LENGTH &&
+                   filename.front() == 'E' &&
+                   filename.substr(EXTENSION_OFFSET) == DAT_EXTENSION;
+        }
+
         static Unpacker *getUnpackerByFilename(std::string filename) {
             std::string base = std::filesystem::path(filename).filename().string();
             if (base == "ITEM.DAT") {
@@ -47,7 +57,8 @@ class UnpackerChooser {
                 return new EntryUnpacker(filename);
             } else if (base.find("WEP_") != std::string::npos) {
                 return new WEPUnpacker(filename);
-            } else if (base == "CORE.DAT" || (base.size() == 7 && base[0] == 'E' && base.substr(3) == ".DAT")) {
+            } else if (base == "CORE.DAT" || base == "RESULT.DAT" ||
+                       isEnemyModelFile(base)) {
                 return new ModelUnpacker(filename);
             } else {
                 return new DechunkerUnpacker(filename);
