@@ -47,6 +47,22 @@ Utility for extracting data from Dino Crisis 2
 | WEP\_\*.DAT  | 🔨        | WAVE files (DONE), textured model as OBJ and rigged glTF (DONE), texture page PNG (DONE)         |
 | WP\*.DAT     | 🔨        | Saves images as PNGs, additional data after images for 75A, 79A, 83A, 84A                        |
 
+## CHARACTER MODEL TEXTURES
+
+Each character model (E\*.DAT, WEP\_\*.DAT) names the texture page it samples through the
+tpage field in its header, which is a position in the PlayStation's video memory. The game
+fills that position from whichever files are loaded, so a model's texture is not always in
+its own file:
+
+- Most files carry the page themselves: 256x256 at 8 bits per pixel, or 128x128 for small
+  characters such as the Compsognathus (EA0.DAT, WEP_PC12.DAT).
+- The default-outfit player models WEP_P000.DAT (Regina) and WEP_P100.DAT (Dylan) have no
+  body texture. It comes from WP00A.DAT / WP10A.DAT. When the matching WP\*A.DAT is in the same
+  folder, the extractor uses it (WEP_Pabc.DAT -> WPacA.DAT).
+- E00.DAT (Velociraptor) and E90.DAT (Oviraptor) have no texture at all. They use the shared
+  enemy page, which the room files (SC\*.DAT, ST502.DAT) load. It differs from room to room,
+  so there is no single right file, and these two models are exported untextured.
+
 ## AUTHOR
 
 Krzysztof Michalski

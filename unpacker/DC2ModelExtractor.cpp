@@ -1,6 +1,7 @@
 #include "DC2ModelExtractor.h"
 
 #include <array>
+#include <cctype>
 #include <cstdint>
 #include <cmath>
 #include <cstring>
@@ -22,10 +23,10 @@ struct Entry { std::uint32_t type, size, address, reserved; };
 std::uint32_t align(std::uint32_t n) { return (n + sector - 1) & ~(sector - 1); }
 
 // Texture pages are stored as 64x32 tiles (one 0x800 sector each), left to right then top
-// to bottom: RESULT pages are 2 tiles across (128x256), character pages 4 across (256x256).
+// to bottom: RESULT pages are 2 tiles across (128x256), character pages 4 across (256x256),
+// or 2 across and 4 down (128x128) for small characters such as the Compsognathus.
 std::vector<unsigned char> rearrangeTextureTiles(const std::vector<unsigned char>& source,
-                                                 std::size_t tilesAcross) {
-    constexpr std::size_t tilesDown = 8;
+                                                 std::size_t tilesAcross, std::size_t tilesDown = 8) {
     constexpr std::size_t tileWidth = 64;
     constexpr std::size_t tileHeight = 32;
     constexpr std::size_t tileSize = tileWidth * tileHeight;
@@ -92,11 +93,17 @@ bool writeResultMaterials(const std::string& modelName, unsigned textureCount) {
 }
 
 // Character texture page (E*.DAT / WEP_*.DAT): a type-1 entry of 0x10000 bytes (256x256,
-// 8 bits per pixel) followed by its 256-colour type-2 CLUT. Colour 0x0000 is transparent.
+// 8 bits per pixel) or 0x4000 bytes (128x128, the top-left corner of the page) followed by
+// its 256-colour type-2 CLUT. Colour 0x0000 is transparent. The PNG is always the full
+// 256x256 page, so model UVs map the same way whatever the stored size.
+bool isModelTextureSize(std::size_t size) { return size == 0x10000 || size == 0x4000; }
+
 bool saveModelTexture(const std::vector<unsigned char>& indexed,
                       const std::vector<unsigned char>& palette,
                       const std::string& outputName) {
-    const std::vector<unsigned char> pixels = rearrangeTextureTiles(indexed, 4);
+    const bool full = indexed.size() == 0x10000;
+    const int width = full ? 256 : 128;
+    const std::vector<unsigned char> pixels = rearrangeTextureTiles(indexed, full ? 4 : 2, full ? 8 : 4);
     if (pixels.empty() || palette.size() != 0x200) return false;
 
     QVector<QRgb> colors;
@@ -110,11 +117,65 @@ bool saveModelTexture(const std::vector<unsigned char>& indexed,
         colors.push_back(value == 0 ? qRgba(0, 0, 0, 0) : QColor(red, green, blue).rgb());
     }
 
-    QImage image(256, 256, QImage::Format_Indexed8);
-    image.setColorTable(colors);
-    for (int y = 0; y < image.height(); ++y)
-        std::memcpy(image.scanLine(y), pixels.data() + y * image.width(), image.width());
+    colors.push_back(qRgba(0, 0, 0, 0));   // index 256: the unused part of a small page
+    QImage image(256, 256, QImage::Format_ARGB32);
+    for (int y = 0; y < image.height(); ++y) {
+        auto* line = reinterpret_cast<QRgb*>(image.scanLine(y));
+        for (int x = 0; x < image.width(); ++x)
+            line[x] = colors[x < width && y < width ? pixels[y * width + x] : 256];
+    }
     return image.save(QString::fromStdString(outputName), "PNG");
+}
+
+// VRAM position of the page a model samples, from the tpage in its header (0x18), in the
+// same form as the load address of a type-1 entry: y << 16 | x (x in 16-bit units).
+std::uint32_t modelTexturePageAddress(const std::vector<unsigned char>& model) {
+    if (model.size() < 0x1A) return 0;
+    const unsigned tpage = model[0x18] | model[0x19] << 8;
+    return (tpage >> 4 & 1) * 256 << 16 | (tpage & 15) * 64;
+}
+
+// Reads the texture page loaded at `address` (a type-1 entry and the type-2 CLUT after it)
+// from another DAT file and saves it as a PNG.
+bool saveModelTextureFrom(const std::filesystem::path& datName, std::uint32_t address,
+                          const std::string& outputName) {
+    std::ifstream input(datName, std::ios::binary);
+    std::uint32_t offset = sector;
+    Entry previous{};
+    std::uint32_t previousOffset = 0;
+    for (std::uint32_t entryOffset = 0; input && entryOffset < sector; entryOffset += 0x20) {
+        Entry entry{};
+        input.seekg(entryOffset);
+        input.read(reinterpret_cast<char*>(&entry), sizeof(entry));
+        if (!input || std::memcmp(&entry.type, "dummy header    ", 16) == 0) break;
+        if (entry.type == 2 && previous.type == 1 && previous.address == address &&
+            isModelTextureSize(previous.size) && entry.size == 0x200) {
+            std::vector<unsigned char> indexed(previous.size), palette(entry.size);
+            input.seekg(previousOffset);
+            input.read(reinterpret_cast<char*>(indexed.data()), indexed.size());
+            input.seekg(offset);
+            input.read(reinterpret_cast<char*>(palette.data()), palette.size());
+            return input && saveModelTexture(indexed, palette, outputName);
+        }
+        previous = entry;
+        previousOffset = offset;
+        offset += align(entry.size);
+    }
+    return false;
+}
+
+// Some models do not carry the texture page they use; the game has it in VRAM from another
+// file. The default-outfit player models WEP_P000 (Regina) and WEP_P100 (Dylan) take theirs
+// from WP00A.DAT / WP10A.DAT (WEP_Pabc -> WPacA). E00 (Velociraptor) and E90 (Oviraptor)
+// take the shared enemy page from whichever room file is loaded (SC*.DAT, ST502.DAT), so
+// there is no single right file and they are exported untextured.
+std::filesystem::path companionTextureFile(const std::string& filename) {
+    const std::filesystem::path path(filename);
+    std::string name = path.filename().string();
+    std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return std::toupper(c); });
+    if (name.size() != 12 || name.compare(0, 5, "WEP_P") != 0 || name.compare(8, 4, ".DAT") != 0) return {};
+    const std::filesystem::path companion = path.parent_path() / ("WP" + name.substr(5, 1) + name.substr(7, 1) + "A.DAT");
+    return std::filesystem::exists(companion) ? companion : std::filesystem::path();
 }
 
 bool writeModelMaterial(const std::string& objName, const std::string& textureName) {
@@ -540,8 +601,9 @@ int DC2ModelExtractor::extract(const std::string& filename) {
     unsigned resultTextureNumber = 0;
     std::vector<unsigned char> pendingResultTexture;
     std::vector<unsigned char> pendingModelTexture;
+    std::uint32_t pendingModelTextureAddress = 0;
     unsigned modelTextureNumber = 0;
-    std::string modelTexture;
+    std::vector<std::pair<std::uint32_t, std::string>> modelTextures;   // (VRAM address, PNG)
     for (std::uint32_t entryOffset = 0; entryOffset < sector; entryOffset += 0x20) {
         Entry entry{};
         input.seekg(entryOffset);
@@ -570,7 +632,8 @@ int DC2ModelExtractor::extract(const std::string& filename) {
             pendingResultTexture.clear();
         } else if (!isResult && entry.type == 1) {
             // Character texture page; saved once its CLUT (the next entry) is read.
-            pendingModelTexture.assign(entry.size == 0x10000 ? entry.size : 0, 0);
+            pendingModelTexture.assign(isModelTextureSize(entry.size) ? entry.size : 0, 0);
+            pendingModelTextureAddress = entry.address;
             input.seekg(offset);
             input.read(reinterpret_cast<char*>(pendingModelTexture.data()), pendingModelTexture.size());
             if (!input) pendingModelTexture.clear();
@@ -581,7 +644,8 @@ int DC2ModelExtractor::extract(const std::string& filename) {
             const std::string textureName = filename + ".texture." + std::to_string(modelTextureNumber) + ".png";
             if (input && saveModelTexture(pendingModelTexture, palette, textureName)) {
                 std::cout << "[INFO] Saved model texture page: " << textureName << '\n';
-                if (modelTextureNumber++ == 0) modelTexture = textureName;   // the page models use
+                modelTextures.emplace_back(pendingModelTextureAddress, textureName);
+                ++modelTextureNumber;
             }
             pendingModelTexture.clear();
         } else if (entry.type == 5) {
@@ -604,6 +668,25 @@ int DC2ModelExtractor::extract(const std::string& filename) {
                 }
                 std::ofstream(stem + ".compressed", std::ios::binary).write(reinterpret_cast<const char*>(packed.data()), packed.size());
                 std::ofstream(stem + ".decompressed", std::ios::binary).write(reinterpret_cast<const char*>(unpacked.data()), unpacked.size());
+                // Use the page the model's tpage points at, from this file or its companion.
+                const std::uint32_t pageAddress = modelTexturePageAddress(unpacked);
+                std::string modelTexture;
+                for (const auto& [address, name] : modelTextures)
+                    if (address == pageAddress) modelTexture = name;
+                CharacterModel model;
+                if (modelTexture.empty() && parseCharacterModel(unpacked, entry.address, model)) {
+                    const auto companion = companionTextureFile(filename);
+                    const std::string textureName = filename + ".texture." + std::to_string(modelTextureNumber) + ".png";
+                    if (!companion.empty() && saveModelTextureFrom(companion, pageAddress, textureName)) {
+                        std::cout << "[INFO] Saved model texture page from " << companion.filename().string() << ": " << textureName << '\n';
+                        modelTextures.emplace_back(pageAddress, textureName);
+                        ++modelTextureNumber;
+                        modelTexture = textureName;
+                    } else {
+                        std::cout << "[INFO] The texture page this model uses is not in this file; the game loads it from "
+                                     "another file (see the README). Exporting untextured.\n";
+                    }
+                }
                 if (exportCharacterObj(unpacked, entry.address, stem + ".obj", modelTexture)) {
                     std::cout << "[INFO] Saved character model OBJ (bind pose): " << stem << ".obj\n";
                     if (exportCharacterGltf(unpacked, entry.address, stem + ".gltf", modelTexture))
