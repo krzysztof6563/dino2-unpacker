@@ -15,7 +15,7 @@ Utility for extracting data from Dino Crisis 2
 | CORE\*.DAT   | 🔨        | WAVE files (DONE), RGB555 textures                                                               |
 | DEMO\*.TRG   | ❌        |                                                                                                  |
 | DOOR\*.DAT   | 🔨        | Extracts textures and soudns and most of 3d models (excpetion is DOOR1900.DAT)                   |
-| E\*.DAT      | 🔨        | Textured model as OBJ and rigged glTF (DONE), texture page PNG (DONE), animations                |
+| E\*.DAT      | 🔨        | Textured model as OBJ and rigged glTF with animation clips (DONE), texture page PNG (DONE), animations                |
 | ENDING.DAT   | ✅        | WAVE files                                                                                       |
 | ENTRY.DAT    | 🔨        | Dino colliseum portraits, some data after                                                        |
 | FILE.DAT     | ✅        | Dino File images stored as RGB555 with pallette                                                  |
