@@ -1,26 +1,40 @@
 #include "DC2ModelExtractor.h"
 
 #include <array>
+#include <cctype>
 #include <cstdint>
 #include <cmath>
 #include <cstring>
+#include <algorithm>
+#include <string>
+#include <utility>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <sstream>
+#include <iomanip>
 
 #include <QColor>
 #include <QImage>
 #include <QVector>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonDocument>
 
 namespace {
+dc2::AnimationOptions animationOptions;
+std::filesystem::path sourceDirectory;      // where companion files are looked for as well
+bool saveArchiveEntries = false;
 constexpr std::uint32_t sector = 0x800;
 struct Entry { std::uint32_t type, size, address, reserved; };
 std::uint32_t align(std::uint32_t n) { return (n + sector - 1) & ~(sector - 1); }
 
-std::vector<unsigned char> rearrangeTextureTiles(const std::vector<unsigned char>& source) {
-    constexpr std::size_t tilesAcross = 2;
-    constexpr std::size_t tilesDown = 8;
+// Texture pages are stored as 64x32 tiles (one 0x800 sector each), left to right then top
+// to bottom: RESULT pages are 2 tiles across (128x256), character pages 4 across (256x256),
+// or 2 across and 4 down (128x128) for small characters such as the Compsognathus.
+std::vector<unsigned char> rearrangeTextureTiles(const std::vector<unsigned char>& source,
+                                                 std::size_t tilesAcross, std::size_t tilesDown = 8) {
     constexpr std::size_t tileWidth = 64;
     constexpr std::size_t tileHeight = 32;
     constexpr std::size_t tileSize = tileWidth * tileHeight;
@@ -42,7 +56,7 @@ std::vector<unsigned char> rearrangeTextureTiles(const std::vector<unsigned char
 bool saveResultTexture(const std::vector<unsigned char>& indexed,
                        const std::vector<unsigned char>& palette,
                        const std::string& outputName) {
-    const std::vector<unsigned char> pixels = rearrangeTextureTiles(indexed);
+    const std::vector<unsigned char> pixels = rearrangeTextureTiles(indexed, 2);
     if (pixels.empty() || palette.size() != 0x200) return false;
 
     QVector<QRgb> colors;
@@ -86,11 +100,113 @@ bool writeResultMaterials(const std::string& modelName, unsigned textureCount) {
     return static_cast<bool>(out);
 }
 
+// Character texture page (E*.DAT / WEP_*.DAT): a type-1 entry of 0x10000 bytes (256x256,
+// 8 bits per pixel) or 0x4000 bytes (128x128, the top-left corner of the page) followed by
+// its 256-colour type-2 CLUT. Colour 0x0000 is transparent. The PNG is always the full
+// 256x256 page, so model UVs map the same way whatever the stored size.
+bool isModelTextureSize(std::size_t size) { return size == 0x10000 || size == 0x4000; }
+
+bool saveModelTexture(const std::vector<unsigned char>& indexed,
+                      const std::vector<unsigned char>& palette,
+                      const std::string& outputName) {
+    const bool full = indexed.size() == 0x10000;
+    const int width = full ? 256 : 128;
+    const std::vector<unsigned char> pixels = rearrangeTextureTiles(indexed, full ? 4 : 2, full ? 8 : 4);
+    if (pixels.empty() || palette.size() != 0x200) return false;
+
+    QVector<QRgb> colors;
+    colors.reserve(256);
+    for (std::size_t i = 0; i < palette.size(); i += 2) {
+        const std::uint16_t value = static_cast<std::uint16_t>(palette[i]) |
+                                    (static_cast<std::uint16_t>(palette[i + 1]) << 8);
+        const int red = (value & 0x1f) * 255 / 31;
+        const int green = ((value >> 5) & 0x1f) * 255 / 31;
+        const int blue = ((value >> 10) & 0x1f) * 255 / 31;
+        colors.push_back(value == 0 ? qRgba(0, 0, 0, 0) : QColor(red, green, blue).rgb());
+    }
+
+    colors.push_back(qRgba(0, 0, 0, 0));   // index 256: the unused part of a small page
+    QImage image(256, 256, QImage::Format_ARGB32);
+    for (int y = 0; y < image.height(); ++y) {
+        auto* line = reinterpret_cast<QRgb*>(image.scanLine(y));
+        for (int x = 0; x < image.width(); ++x)
+            line[x] = colors[x < width && y < width ? pixels[y * width + x] : 256];
+    }
+    return image.save(QString::fromStdString(outputName), "PNG");
+}
+
+// VRAM position of the page a model samples, from the tpage in its header (0x18), in the
+// same form as the load address of a type-1 entry: y << 16 | x (x in 16-bit units).
+std::uint32_t modelTexturePageAddress(const std::vector<unsigned char>& model) {
+    if (model.size() < 0x1A) return 0;
+    const unsigned tpage = model[0x18] | model[0x19] << 8;
+    return (tpage >> 4 & 1) * 256 << 16 | (tpage & 15) * 64;
+}
+
+// Reads the texture page loaded at `address` (a type-1 entry and the type-2 CLUT after it)
+// from another DAT file and saves it as a PNG.
+bool saveModelTextureFrom(const std::filesystem::path& datName, std::uint32_t address,
+                          const std::string& outputName) {
+    std::ifstream input(datName, std::ios::binary);
+    std::uint32_t offset = sector;
+    Entry previous{};
+    std::uint32_t previousOffset = 0;
+    for (std::uint32_t entryOffset = 0; input && entryOffset < sector; entryOffset += 0x20) {
+        Entry entry{};
+        input.seekg(entryOffset);
+        input.read(reinterpret_cast<char*>(&entry), sizeof(entry));
+        if (!input || std::memcmp(&entry.type, "dummy header    ", 16) == 0) break;
+        if (entry.type == 2 && previous.type == 1 && previous.address == address &&
+            isModelTextureSize(previous.size) && entry.size == 0x200) {
+            std::vector<unsigned char> indexed(previous.size), palette(entry.size);
+            input.seekg(previousOffset);
+            input.read(reinterpret_cast<char*>(indexed.data()), indexed.size());
+            input.seekg(offset);
+            input.read(reinterpret_cast<char*>(palette.data()), palette.size());
+            return input && saveModelTexture(indexed, palette, outputName);
+        }
+        previous = entry;
+        previousOffset = offset;
+        offset += align(entry.size);
+    }
+    return false;
+}
+
+// Some models do not carry the texture page they use; the game has it in VRAM from another
+// file. The default-outfit player models WEP_P000 (Regina) and WEP_P100 (Dylan) take theirs
+// from WP00A.DAT / WP10A.DAT (WEP_Pabc -> WPacA). E00 (Velociraptor) and E90 (Oviraptor)
+// take the shared enemy page from whichever room file is loaded (SC*.DAT, ST502.DAT), so
+// there is no single right file and they are exported untextured.
+std::filesystem::path companionTextureFile(const std::string& filename) {
+    const std::filesystem::path path(filename);
+    std::string name = path.filename().string();
+    std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return std::toupper(c); });
+    if (name.size() != 12 || name.compare(0, 5, "WEP_P") != 0 || name.compare(8, 4, ".DAT") != 0) return {};
+    const std::string companionName = "WP" + name.substr(5, 1) + name.substr(7, 1) + "A.DAT";
+    for (const auto& dir : {path.parent_path(), sourceDirectory})
+        if (!dir.empty() && std::filesystem::exists(dir / companionName)) return dir / companionName;
+    return {};
+}
+
+bool writeModelMaterial(const std::string& objName, const std::string& textureName) {
+    std::ofstream out(objName + ".mtl", std::ios::trunc);
+    if (!out) return false;
+    out << "newmtl model_texture\n"
+        << "Ka 1.000000 1.000000 1.000000\n"
+        << "Kd 1.000000 1.000000 1.000000\n"
+        << "Ks 0.000000 0.000000 0.000000\n"
+        << "d 1.000000\n"
+        << "illum 1\n"
+        << "map_Kd " << std::filesystem::path(textureName).filename().string() << '\n';
+    return static_cast<bool>(out);
+}
+
 bool decompress(const std::vector<unsigned char>& in, std::vector<unsigned char>& out) {
     std::size_t src = 0;
     while (src < in.size()) {
         unsigned flags = in[src++] | 0x100;
         for (int bit = 0; bit < 8 && src < in.size(); ++bit, flags >>= 1) {
+            if (out.size() > 128 * 1024 * 1024) return false;
             if (flags & 1) { out.push_back(in[src++]); continue; }
             if (src + 1 >= in.size()) return false;
             unsigned lo = in[src++], hi = in[src++];
@@ -108,132 +224,419 @@ std::uint16_t u16(const std::vector<unsigned char>& b, std::size_t o) {
 std::uint32_t u32(const std::vector<unsigned char>& b, std::size_t o) {
     return u16(b, o) | (static_cast<std::uint32_t>(u16(b, o + 2)) << 16);
 }
-bool exportExperimentalObj(const std::vector<unsigned char>& b, std::uint32_t base, const std::string& name,
-                           bool applyJointTranslations = false,
-                           const std::vector<std::array<std::int16_t, 3>>* rotations = nullptr,
-                           bool useJointPivots = false, bool composeHierarchy = false) {
-    if (b.size() < 20) return false;
+// Character models: the type-5 block of E*.DAT (enemies) and WEP_*.DAT (playable
+// characters), decompressed at its load address `base` (all pointers are absolute).
+//   0x00 u32 vertex, normal, triangle and quad table pointers
+//   0x10 u16 triangle total, quad total, part count, pad; 0x18 u32 tpage | clut << 16
+//   0x1C part records, 0x14 bytes each:
+//          s16 x, y, z   joint offset from the parent part (the root's is its position)
+//          u8  parent    (0xFF for the root), u8 flags
+//          u32 triangle pointer, u32 quad pointer, s16 triangle count, s16 quad count
+//   vertices (8 bytes): s16 x, y, z in the local space of their part, u16 part index;
+//          0x2E2E marks unused filler entries.  Normals use the same layout.
+//   triangles (12 bytes): u16 v0, v1, v2, then u8 u, v x3 stored rotated by one corner
+//          (uv of v2, v0, v1).  quads (16 bytes): u16 v0..v3 in PlayStation order
+//          (top-left, top-right, bottom-left, bottom-right), then u8 u, v x4.
+// A vertex's position is its part's bind-pose joint (the sum of the offsets up the parent
+// chain) plus its local coordinates; in this bind pose the feet of E10/E40 sit exactly on
+// y = 0.  The PlayStation space is y-down, so the OBJ is rotated 180 degrees about X.
+// Animations (after the quad table in E files; at +0x3800 behind 0xCD padding in WEP files)
+// use a 16-byte frame header plus 6 bytes per joint (0x88 for E30's 20 joints):
+// u16 time, u16 duration, s16 root x, y, z, three shorts of
+// accumulated root motion, then one s16 x, y, z rotation (4096 = 360 degrees) per part.
+// The primitives wind clockwise seen from outside (95% of faces oppose their vertex
+// normals; the rest are deliberate back faces such as the inside of the mouth), so both
+// exporters reverse them to the counter-clockwise front faces OBJ and glTF expect.
+struct CharacterModel {
+    struct Part {
+        std::array<std::int32_t, 3> offset;   // from the parent joint
+        std::array<std::int32_t, 3> joint;    // bind-pose position
+        int parent;                           // -1 for a root
+        std::size_t tris, quads, triCount, quadCount;
+    };
+    std::vector<Part> parts;
+    std::size_t vertexTable = 0, normalTable = 0, vertices = 0;
+
+    // Bind-pose position of vertex i, still in PlayStation units and axes.
+    std::array<std::int32_t, 3> position(const std::vector<unsigned char>& b, std::size_t i) const {
+        const std::size_t o = vertexTable + i * 8;
+        std::array<std::int32_t, 3> p = {static_cast<std::int16_t>(u16(b, o)),
+                                         static_cast<std::int16_t>(u16(b, o + 2)),
+                                         static_cast<std::int16_t>(u16(b, o + 4))};
+        const std::uint16_t group = u16(b, o + 6);
+        if (group < parts.size())
+            for (int k = 0; k < 3; ++k) p[k] += parts[group].joint[k];
+        return p;
+    }
+    std::size_t part(const std::vector<unsigned char>& b, std::size_t i) const {
+        const std::uint16_t group = u16(b, vertexTable + i * 8 + 6);
+        return group < parts.size() ? group : 0;
+    }
+    std::array<double, 3> normal(const std::vector<unsigned char>& b, std::size_t i) const {
+        const std::size_t o = normalTable + i * 8;
+        return {static_cast<std::int16_t>(u16(b, o)) / 4096.0,
+                static_cast<std::int16_t>(u16(b, o + 2)) / 4096.0,
+                static_cast<std::int16_t>(u16(b, o + 4)) / 4096.0};
+    }
+};
+
+bool parseCharacterModel(const std::vector<unsigned char>& b, std::uint32_t base, CharacterModel& m) {
+    if (b.size() < 0x1C) return false;
     const std::uint32_t va = u32(b, 0), na = u32(b, 4), ta = u32(b, 8), qa = u32(b, 12);
     if (va < base || na < base || ta < base || qa < base) return false;
-    const std::size_t v = va - base, n = na - base, t = ta - base, q = qa - base;
-    const std::size_t triangles = u16(b, 16), quads = u16(b, 18);
-    if (n < v || t < n || q < t || (n - v) % 8 || (t - n) % 8 ||
-        t + triangles * 12 > b.size() || q + quads * 16 > b.size()) return false;
-    const std::size_t vertices = (n - v) / 8;
-    struct Joint { std::int16_t x, y, z; };
-    std::vector<Joint> joints;
-    if (applyJointTranslations) {
-        // E-models keep 0x14-byte draw-group records between the header and
-        // vertices.  Their first three shorts line up with the per-vertex
-        // group ID stored in the fourth vertex short.
-        // The table has a 16-byte trailer before the vertex data.  (For
-        // E10: 19 records at 0x20 plus the trailer, then vertices at 0x1ac.)
-        if (v < 0x30 || (v - 0x20 - 0x10) % 0x14) return false;
-        const std::size_t groupCount = (v - 0x20 - 0x10) / 0x14;
-        joints.reserve(groupCount);
-        for (std::size_t i = 0; i < groupCount; ++i) {
-            const std::size_t o = 0x20 + i * 0x14;
-            joints.push_back({static_cast<std::int16_t>(u16(b, o)),
-                              static_cast<std::int16_t>(u16(b, o + 2)),
-                              static_cast<std::int16_t>(u16(b, o + 16))});
+    const std::size_t v = va - base, n = na - base;
+    const std::size_t partCount = u16(b, 0x14);
+    if (partCount == 0 || v != 0x1C + partCount * 0x14 || n <= v || (n - v) % 8 ||
+        n + (n - v) > b.size()) return false;
+    m.vertexTable = v;
+    m.normalTable = n;
+    m.vertices = (n - v) / 8;
+    m.parts.assign(partCount, {});
+    for (std::size_t k = 0; k < partCount; ++k) {
+        const std::size_t r = 0x1C + k * 0x14;
+        CharacterModel::Part& part = m.parts[k];
+        part.offset = {static_cast<std::int16_t>(u16(b, r)),
+                       static_cast<std::int16_t>(u16(b, r + 2)),
+                       static_cast<std::int16_t>(u16(b, r + 4))};
+        part.joint = part.offset;
+        part.parent = b[r + 6] == 0xFF ? -1 : b[r + 6];
+        if (part.parent >= 0) {
+            if (static_cast<std::size_t>(part.parent) >= k) return false;   // parents come first
+            for (int i = 0; i < 3; ++i) part.joint[i] += m.parts[part.parent].joint[i];
         }
+        const std::uint32_t tp = u32(b, r + 8), qp = u32(b, r + 12);
+        part.triCount = u16(b, r + 16);
+        part.quadCount = u16(b, r + 18);
+        if (tp < base || qp < base || tp - base + part.triCount * 12 > b.size() ||
+            qp - base + part.quadCount * 16 > b.size()) return false;
+        part.tris = tp - base;
+        part.quads = qp - base;
     }
-    struct Pose { std::array<double, 9> r; std::array<double, 3> p; };
-    std::vector<Pose> poses;
-    if (composeHierarchy && rotations && joints.size() == 19 && rotations->size() == 19) {
-        // Derived from the groups connected by each primitive range.  The
-        // coordinates in the group table are absolute bind-joint positions.
-        constexpr int parent[] = {-1, 0, 1, 2, 3, 1, 1, 0, 7, 8, 9, 0, 11, 12, 13, 0, 15, 16, 17};
-        const auto multiply = [](const std::array<double, 9>& a, const std::array<double, 9>& c) {
-            std::array<double, 9> r{};
-            for (int row = 0; row < 3; ++row) for (int col = 0; col < 3; ++col)
-                for (int k = 0; k < 3; ++k) r[row * 3 + col] += a[row * 3 + k] * c[k * 3 + col];
-            return r;
-        };
-        const auto transform = [](const std::array<double, 9>& r, const std::array<double, 3>& v) {
-            return std::array<double, 3>{r[0] * v[0] + r[1] * v[1] + r[2] * v[2],
-                                         r[3] * v[0] + r[4] * v[1] + r[5] * v[2],
-                                         r[6] * v[0] + r[7] * v[1] + r[8] * v[2]};
-        };
-        constexpr double pi = 3.14159265358979323846;
-        for (std::size_t i = 0; i < joints.size(); ++i) {
-            const auto& a = (*rotations)[i];
-            const double sx = std::sin(a[0] * 2.0 * pi / 4096.0), cx = std::cos(a[0] * 2.0 * pi / 4096.0);
-            const double sy = std::sin(a[1] * 2.0 * pi / 4096.0), cy = std::cos(a[1] * 2.0 * pi / 4096.0);
-            const double sz = std::sin(a[2] * 2.0 * pi / 4096.0), cz = std::cos(a[2] * 2.0 * pi / 4096.0);
-            const std::array<double, 9> local = {cz * cy, cz * sy * sx - sz * cx, cz * sy * cx + sz * sx,
-                                                  sz * cy, sz * sy * sx + cz * cx, sz * sy * cx - cz * sx,
-                                                  -sy, cy * sx, cy * cx};
-            const std::array<double, 3> bind = {static_cast<double>(joints[i].x), static_cast<double>(joints[i].y), static_cast<double>(joints[i].z)};
-            if (parent[i] < 0) {
-                poses.push_back({local, bind});
-            } else {
-                const auto& parentPose = poses[parent[i]];
-                const auto& parentBind = joints[parent[i]];
-                const std::array<double, 3> offset = {bind[0] - parentBind.x, bind[1] - parentBind.y, bind[2] - parentBind.z};
-                const auto transformedOffset = transform(parentPose.r, offset);
-                poses.push_back({multiply(parentPose.r, local), {parentPose.p[0] + transformedOffset[0], parentPose.p[1] + transformedOffset[1], parentPose.p[2] + transformedOffset[2]}});
-            }
-        }
+    // every primitive must reference a real vertex
+    for (const auto& part : m.parts) {
+        for (std::size_t i = 0; i < part.triCount * 3; ++i)
+            if (u16(b, part.tris + (i / 3) * 12 + (i % 3) * 2) >= m.vertices) return false;
+        for (std::size_t i = 0; i < part.quadCount * 4; ++i)
+            if (u16(b, part.quads + (i / 4) * 16 + (i % 4) * 2) >= m.vertices) return false;
     }
+    return true;
+}
+
+// Corners of one primitive as (vertex index, uv byte offset), counter-clockwise.  Triangles
+// store their UVs rotated by one corner; quads are split along the 1-2 diagonal, as the
+// PlayStation GPU draws them.
+using Corner = std::pair<std::size_t, std::size_t>;
+std::vector<std::array<Corner, 3>> primitiveTriangles(const std::vector<unsigned char>& b,
+                                                      std::size_t offset, std::size_t count) {
+    const auto corner = [&](std::size_t i) {
+        const std::size_t uvSource = count == 3 ? (i + 1) % 3 : i;
+        return Corner{u16(b, offset + i * 2), offset + count * 2 + uvSource * 2};
+    };
+    if (count == 3) return {{corner(0), corner(2), corner(1)}};
+    return {{corner(0), corner(2), corner(1)}, {corner(1), corner(2), corner(3)}};
+}
+
+bool exportCharacterObj(const std::vector<unsigned char>& b, std::uint32_t base,
+                        const std::string& name, const std::string& textureName) {
+    CharacterModel m;
+    if (!parseCharacterModel(b, base, m)) return false;
+
     std::ofstream out(name, std::ios::trunc);
     if (!out) return false;
-    out << "# Experimental DC2 mesh: geometry only\n";
-    for (std::size_t i = 0; i < vertices; ++i) {
-        const std::size_t o = v + i * 8;
-        std::int32_t x = static_cast<std::int16_t>(u16(b, o));
-        std::int32_t y = static_cast<std::int16_t>(u16(b, o + 2));
-        std::int32_t z = static_cast<std::int16_t>(u16(b, o + 4));
-        const std::uint16_t group = u16(b, o + 6);
-        if (!poses.empty() && group < poses.size()) {
-            const auto& bind = joints[group];
-            const auto& pose = poses[group];
-            const double lx = x - bind.x, ly = y - bind.y, lz = z - bind.z;
-            x = static_cast<std::int32_t>(std::lround(pose.p[0] + pose.r[0] * lx + pose.r[1] * ly + pose.r[2] * lz));
-            y = static_cast<std::int32_t>(std::lround(pose.p[1] + pose.r[3] * lx + pose.r[4] * ly + pose.r[5] * lz));
-            z = static_cast<std::int32_t>(std::lround(pose.p[2] + pose.r[6] * lx + pose.r[7] * ly + pose.r[8] * lz));
-        } else if (applyJointTranslations && group < joints.size()) {
-            if (useJointPivots) {
-                // Vertices are in the bind-pose coordinate space.  A group
-                // rotation must be around its bind joint, not world zero.
-                x -= joints[group].x;
-                y -= joints[group].y;
-                z -= joints[group].z;
-            }
-            if (rotations && group < rotations->size()) {
-                const auto& r = (*rotations)[group];
-                const double scale = 2.0 * 3.14159265358979323846 / 4096.0;
-                const double sx = std::sin(r[0] * scale), cx = std::cos(r[0] * scale);
-                const double sy = std::sin(r[1] * scale), cy = std::cos(r[1] * scale);
-                const double sz = std::sin(r[2] * scale), cz = std::cos(r[2] * scale);
-                double rx = x, ry = y, rz = z;
-                // PlayStation's standard Euler order: X, then Y, then Z.
-                const double y1 = ry * cx - rz * sx, z1 = ry * sx + rz * cx;
-                const double x2 = rx * cy + z1 * sy, z2 = -rx * sy + z1 * cy;
-                x = static_cast<std::int32_t>(std::lround(x2 * cz - y1 * sz));
-                y = static_cast<std::int32_t>(std::lround(x2 * sz + y1 * cz));
-                z = static_cast<std::int32_t>(std::lround(z2));
-            }
-            x += joints[group].x;
-            y += joints[group].y;
-            z += joints[group].z;
-        }
-        out << "v " << x << ' ' << y << ' ' << z << '\n';
+    constexpr double scale = 0.001;
+    out << "# Dino Crisis 2 character model, bind pose\n";
+    if (!textureName.empty())
+        out << "mtllib " << std::filesystem::path(name + ".mtl").filename().string() << '\n';
+    out << "o " << std::filesystem::path(name).stem().string() << '\n';
+    for (std::size_t i = 0; i < m.vertices; ++i) {
+        const auto p = m.position(b, i);
+        out << "v " << p[0] * scale << ' ' << -p[1] * scale << ' ' << -p[2] * scale << '\n';
     }
-    const auto face = [&](std::size_t o, std::size_t count) {
-        out << "f";
+    for (std::size_t i = 0; i < m.vertices; ++i) {
+        const auto nrm = m.normal(b, i);
+        out << "vn " << nrm[0] << ' ' << -nrm[1] << ' ' << -nrm[2] << '\n';
+    }
+
+    std::size_t uvIndex = 1;
+    const auto face = [&](std::size_t offset, std::size_t count) {
+        // perimeter reversed to counter-clockwise: triangles 0,2,1; quads 0,2,3,1
+        static constexpr std::size_t triOrder[] = {0, 2, 1}, quadOrder[] = {0, 2, 3, 1};
+        const std::size_t* order = count == 3 ? triOrder : quadOrder;
+        std::array<std::size_t, 4> indices{};
         for (std::size_t i = 0; i < count; ++i) {
-            const std::size_t source = count == 4 && i >= 2 ? 5 - i : i;
-            const std::size_t index = u16(b, o + source * 2);
-            if (index >= vertices) return false;
-            out << ' ' << index + 1;
+            const std::size_t source = order[i];
+            indices[i] = u16(b, offset + source * 2);
+            const std::size_t uvSource = count == 3 ? (source + 1) % 3 : source;
+            const std::size_t uv = offset + count * 2 + uvSource * 2;
+            out << "vt " << b[uv] / 256.0 << ' ' << 1.0 - b[uv + 1] / 256.0 << '\n';
         }
+        out << "f";
+        for (std::size_t i = 0; i < count; ++i)
+            out << ' ' << indices[i] + 1 << '/' << uvIndex + i << '/' << indices[i] + 1;
         out << '\n';
-        return true;
+        uvIndex += count;
     };
-    for (std::size_t i = 0; i < triangles; ++i) if (!face(t + i * 12, 3)) return false;
-    for (std::size_t i = 0; i < quads; ++i) if (!face(q + i * 16, 4)) return false;
-    return true;
+    for (std::size_t k = 0; k < m.parts.size(); ++k) {
+        const auto& part = m.parts[k];
+        if (part.triCount == 0 && part.quadCount == 0) continue;
+        out << "g part_" << k << '\n';
+        if (!textureName.empty()) out << "usemtl model_texture\n";
+        for (std::size_t i = 0; i < part.triCount; ++i) face(part.tris + i * 12, 3);
+        for (std::size_t i = 0; i < part.quadCount; ++i) face(part.quads + i * 16, 4);
+    }
+    if (!out) return false;
+    return textureName.empty() || writeModelMaterial(name, textureName);
+}
+
+std::string base64(const std::vector<unsigned char>& data) {
+    static const char* table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    std::string out;
+    out.reserve((data.size() + 2) / 3 * 4);
+    for (std::size_t i = 0; i < data.size(); i += 3) {
+        const std::uint32_t n = static_cast<std::uint32_t>(data[i]) << 16 |
+                                (i + 1 < data.size() ? static_cast<std::uint32_t>(data[i + 1]) << 8 : 0) |
+                                (i + 2 < data.size() ? data[i + 2] : 0);
+        out += table[n >> 18 & 63];
+        out += table[n >> 12 & 63];
+        out += i + 1 < data.size() ? table[n >> 6 & 63] : '=';
+        out += i + 2 < data.size() ? table[n & 63] : '=';
+    }
+    return out;
+}
+
+// Rigged glTF 2.0: one joint node per part (hierarchy and bind-pose offsets from the part
+// table) and every vertex bound with weight 1 to its own part, as the game skins them.
+// Same units and axes as the OBJ (metres, +Y up).  Vertices are emitted per distinct
+// (vertex, UV) corner because the game stores UVs per corner.  The buffer and the texture
+// page PNG are embedded in the .gltf, so the file stands alone.
+bool exportCharacterGltf(const std::vector<unsigned char>& b, std::uint32_t base,
+                         const std::string& name, const std::string& textureName) {
+    CharacterModel m;
+    if (!parseCharacterModel(b, base, m)) return false;
+    constexpr float scale = 0.001f;
+    const auto toGltf = [&](const std::array<std::int32_t, 3>& p) {
+        return std::array<float, 3>{p[0] * scale, -p[1] * scale, -p[2] * scale};
+    };
+
+    std::vector<float> positions, normals, uvs, weights;
+    std::vector<std::uint16_t> joints;
+    std::vector<std::uint32_t> indices;
+    std::vector<std::pair<std::size_t, std::uint16_t>> keys;   // (vertex, packed uv) per output vertex
+    std::array<float, 3> lo{1e9f, 1e9f, 1e9f}, hi{-1e9f, -1e9f, -1e9f};
+    const auto addCorner = [&](const Corner& c) {
+        const std::uint16_t uv = u16(b, c.second);
+        for (std::size_t k = 0; k < keys.size(); ++k)            // models have a few hundred vertices
+            if (keys[k].first == c.first && keys[k].second == uv) return static_cast<std::uint32_t>(k);
+        keys.emplace_back(c.first, uv);
+        const auto p = toGltf(m.position(b, c.first));
+        for (int k = 0; k < 3; ++k) {
+            positions.push_back(p[k]);
+            lo[k] = std::min(lo[k], p[k]);
+            hi[k] = std::max(hi[k], p[k]);
+        }
+        const auto nrm = m.normal(b, c.first);
+        const double len = std::sqrt(nrm[0] * nrm[0] + nrm[1] * nrm[1] + nrm[2] * nrm[2]);
+        if (len > 0)
+            normals.insert(normals.end(), {static_cast<float>(nrm[0] / len), static_cast<float>(-nrm[1] / len),
+                                           static_cast<float>(-nrm[2] / len)});
+        else
+            normals.insert(normals.end(), {0.0f, 1.0f, 0.0f});
+        uvs.insert(uvs.end(), {b[c.second] / 256.0f, b[c.second + 1] / 256.0f});
+        joints.insert(joints.end(), {static_cast<std::uint16_t>(m.part(b, c.first)), 0, 0, 0});
+        weights.insert(weights.end(), {1.0f, 0.0f, 0.0f, 0.0f});
+        return static_cast<std::uint32_t>(keys.size() - 1);
+    };
+    for (const auto& part : m.parts) {
+        for (std::size_t i = 0; i < part.triCount + part.quadCount; ++i) {
+            const bool tri = i < part.triCount;
+            const std::size_t offset = tri ? part.tris + i * 12 : part.quads + (i - part.triCount) * 16;
+            for (const auto& t : primitiveTriangles(b, offset, tri ? 3 : 4))
+                for (const auto& c : t) indices.push_back(addCorner(c));
+        }
+    }
+    const std::size_t count = keys.size();
+    if (count == 0) return false;
+    std::vector<float> inverseBind;   // column-major: translation by minus each joint's bind position
+    for (const auto& part : m.parts) {
+        const auto j = toGltf(part.joint);
+        inverseBind.insert(inverseBind.end(), {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -j[0], -j[1], -j[2], 1});
+    }
+
+    std::vector<unsigned char> buffer;   // one view per accessor, each 4-byte aligned
+    struct View { std::size_t offset, length; int target; };
+    std::vector<View> views;
+    const auto addView = [&](const void* data, std::size_t length, int target) {
+        views.push_back({buffer.size(), length, target});
+        const auto* bytes = static_cast<const unsigned char*>(data);
+        buffer.insert(buffer.end(), bytes, bytes + length);
+        while (buffer.size() % 4) buffer.push_back(0);
+    };
+    addView(positions.data(), positions.size() * 4, 34962);   // ARRAY_BUFFER
+    addView(normals.data(), normals.size() * 4, 34962);
+    addView(uvs.data(), uvs.size() * 4, 34962);
+    addView(joints.data(), joints.size() * 2, 34962);
+    addView(weights.data(), weights.size() * 4, 34962);
+    addView(indices.data(), indices.size() * 4, 34963);       // ELEMENT_ARRAY_BUFFER
+    addView(inverseBind.data(), inverseBind.size() * 4, 0);
+
+    std::string motionReason;
+    dc2::AnimationDiagnostics diagnostics;
+    const auto clips = dc2::decodeAnimations(b, base, m.parts.size(), animationOptions, motionReason, &diagnostics);
+    if (!motionReason.empty()) std::cout << "[WARNING] " << name << ": " << motionReason << '\n';
+    QJsonObject report;
+    report["model"] = QString::fromStdString(std::filesystem::path(name).filename().string());
+    report["joint_count"] = int(m.parts.size());
+    report["exported_clips"] = int(clips.size());
+    report["layout"] = QString::fromStdString(diagnostics.layout);
+    report["assumed_ticks_per_second"] = animationOptions.ticksPerSecond;
+    report["in_place"] = animationOptions.inPlace;
+    report["note"] = QString::fromStdString(motionReason);
+    report["validation"] = "Binary/timeline validation; new models require visual playback verification";
+    QJsonArray records;
+    for (const auto& r : diagnostics.records) {
+        QJsonObject item;
+        item["source_index"] = int(r.index);
+        item["source_offset"] = double(r.offset);
+        item["frames"] = double(r.frames);
+        item["record_bytes"] = double(r.stride);
+        item["status"] = QString::fromStdString(r.status);
+        records.append(item);
+    }
+    report["records"] = records;
+    const auto reportBytes = QJsonDocument(report).toJson();
+    std::ofstream(name + ".animations.json", std::ios::binary).write(reportBytes.constData(), reportBytes.size());
+    std::vector<std::string> motionAccessors;
+    std::ostringstream animationJson;
+    animationJson.precision(9);
+    if (!clips.empty()) animationJson << "\"animations\":[";
+    for (std::size_t ci = 0; ci < clips.size(); ++ci) {
+        const auto& clip = clips[ci];
+        const auto addMotionAccessor = [&](const std::vector<float>& values, std::size_t width,
+                                           const char* type, bool time = false) {
+            const std::size_t index = 7 + motionAccessors.size();
+            const std::size_t view = views.size();
+            addView(values.data(), values.size() * sizeof(float), 0);
+            std::ostringstream a;
+            a.precision(9);
+            a << "{\"bufferView\":" << view << ",\"componentType\":5126,\"count\":"
+              << values.size() / width << ",\"type\":\"" << type << '\"';
+            if (time) a << ",\"min\":[" << values.front() << "],\"max\":[" << values.back() << ']';
+            a << '}';
+            motionAccessors.push_back(a.str());
+            return index;
+        };
+        const auto time = addMotionAccessor(clip.times, 1, "SCALAR", true);
+        std::vector<std::size_t> outputs;
+        for (const auto& track : clip.rotations) {
+            std::vector<float> values;
+            for (const auto& rotation : track) values.insert(values.end(), rotation.begin(), rotation.end());
+            outputs.push_back(addMotionAccessor(values, 4, "VEC4"));
+        }
+        // Each frame stores the first root's own position (the body's height and sway, which
+        // replaces its bind offset) and the cumulative movement through the world; --in-place
+        // keeps the first and drops the second.
+        std::vector<std::size_t> roots;
+        bool firstRoot = true;
+        for (std::size_t j = 0; j < m.parts.size(); ++j) {
+            if (m.parts[j].parent >= 0) continue;
+            const auto bind = toGltf(m.parts[j].offset);
+            std::vector<float> values;
+            for (std::size_t f = 0; f < clip.rootOffsets.size(); ++f)
+                for (int k = 0; k < 3; ++k)
+                    values.push_back((firstRoot ? clip.rootPositions[f][k] : bind[k]) +
+                                     (animationOptions.inPlace ? 0.0f : clip.rootOffsets[f][k]));
+            firstRoot = false;
+            roots.push_back(j);
+            outputs.push_back(addMotionAccessor(values, 3, "VEC3"));
+        }
+        animationJson << (ci ? "," : "") << "{\"name\":\"Clip_" << std::setfill('0')
+            << std::setw(2) << clip.sourceIndex << "\",\"extras\":{\"sourceFrameCount\":"
+            << clip.times.size() << ",\"sourceOffset\":" << clip.sourceOffset
+            << ",\"assumedTicksPerSecond\":" << animationOptions.ticksPerSecond
+            << "},\"samplers\":[";
+        for (std::size_t j = 0; j < outputs.size(); ++j)
+            animationJson << (j ? "," : "") << "{\"input\":" << time << ",\"output\":"
+                << outputs[j] << ",\"interpolation\":\"LINEAR\"}";
+        animationJson << "],\"channels\":[";
+        for (std::size_t j = 0; j < outputs.size(); ++j) {
+            const bool rotation = j < m.parts.size();
+            const std::size_t node = rotation ? j : roots[j - m.parts.size()];
+            animationJson << (j ? "," : "") << "{\"sampler\":" << j << ",\"target\":{\"node\":"
+                << node << ",\"path\":\"" << (rotation ? "rotation" : "translation") << "\"}}";
+        }
+        animationJson << "]}";
+    }
+    if (!clips.empty()) {
+        animationJson << "],\n";
+        std::cout << "[INFO] Exporting " << clips.size() << " animation clips at "
+                  << animationOptions.ticksPerSecond << " assumed ticks/second"
+                  << (animationOptions.inPlace ? " (in place)" : " (root motion)") << '\n';
+    }
+
+    std::ofstream out(name, std::ios::trunc);
+    if (!out) return false;
+    out.precision(9);
+    const std::size_t partCount = m.parts.size();
+    out << "{\n\"asset\":{\"version\":\"2.0\",\"generator\":\"dino2-unpacker\"},\n\"scene\":0,\n";
+    out << "\"scenes\":[{\"nodes\":[";
+    for (std::size_t k = 0; k < partCount; ++k)
+        if (m.parts[k].parent < 0) out << k << ',';
+    out << partCount << "]}],\n\"nodes\":[\n";
+    for (std::size_t k = 0; k < partCount; ++k) {
+        const auto t = toGltf(m.parts[k].offset);
+        out << "{\"name\":\"part_" << k << "\",\"translation\":[" << t[0] << ',' << t[1] << ',' << t[2] << ']';
+        std::string children;
+        for (std::size_t c = 0; c < partCount; ++c)
+            if (m.parts[c].parent == static_cast<int>(k))
+                children += (children.empty() ? "" : ",") + std::to_string(c);
+        if (!children.empty()) out << ",\"children\":[" << children << ']';
+        out << "},\n";
+    }
+    out << "{\"name\":\"" << std::filesystem::path(name).stem().string() << "\",\"mesh\":0,\"skin\":0}\n],\n";
+    out << "\"skins\":[{\"inverseBindMatrices\":6,\"joints\":[";
+    for (std::size_t k = 0; k < partCount; ++k) out << (k ? "," : "") << k;
+    out << "]}],\n";
+    out << "\"meshes\":[{\"primitives\":[{\"attributes\":{\"POSITION\":0,\"NORMAL\":1,\"TEXCOORD_0\":2,"
+        << "\"JOINTS_0\":3,\"WEIGHTS_0\":4},\"indices\":5,\"material\":0}]}],\n";
+    out << "\"materials\":[{\"name\":\"model_texture\",\"pbrMetallicRoughness\":{";
+    if (!textureName.empty()) out << "\"baseColorTexture\":{\"index\":0},";
+    out << "\"metallicFactor\":0,\"roughnessFactor\":1}";
+    if (!textureName.empty()) out << ",\"alphaMode\":\"MASK\",\"alphaCutoff\":0.5";
+    out << "}],\n";
+    if (!textureName.empty()) {
+        std::ifstream png(textureName, std::ios::binary | std::ios::ate);
+        std::vector<unsigned char> pngData(png ? static_cast<std::size_t>(png.tellg()) : 0);
+        png.seekg(0);
+        png.read(reinterpret_cast<char*>(pngData.data()), pngData.size());
+        out << "\"images\":[{\"uri\":\"";
+        if (png && !pngData.empty())
+            out << "data:image/png;base64," << base64(pngData);
+        else
+            out << std::filesystem::path(textureName).filename().string();
+        out << "\"}],\n"
+            << "\"samplers\":[{\"magFilter\":9728,\"minFilter\":9728,\"wrapS\":33071,\"wrapT\":33071}],\n"
+            << "\"textures\":[{\"source\":0,\"sampler\":0}],\n";
+    }
+    out << "\"accessors\":[\n"
+        << "{\"bufferView\":0,\"componentType\":5126,\"count\":" << count << ",\"type\":\"VEC3\",\"min\":["
+        << lo[0] << ',' << lo[1] << ',' << lo[2] << "],\"max\":[" << hi[0] << ',' << hi[1] << ',' << hi[2] << "]},\n"
+        << "{\"bufferView\":1,\"componentType\":5126,\"count\":" << count << ",\"type\":\"VEC3\"},\n"
+        << "{\"bufferView\":2,\"componentType\":5126,\"count\":" << count << ",\"type\":\"VEC2\"},\n"
+        << "{\"bufferView\":3,\"componentType\":5123,\"count\":" << count << ",\"type\":\"VEC4\"},\n"
+        << "{\"bufferView\":4,\"componentType\":5126,\"count\":" << count << ",\"type\":\"VEC4\"},\n"
+        << "{\"bufferView\":5,\"componentType\":5125,\"count\":" << indices.size() << ",\"type\":\"SCALAR\"},\n"
+        << "{\"bufferView\":6,\"componentType\":5126,\"count\":" << partCount << ",\"type\":\"MAT4\"}";
+    for (const auto& accessor : motionAccessors) out << ",\n" << accessor;
+    out << "\n],\n" << animationJson.str();
+    out << "\"bufferViews\":[\n";
+    for (std::size_t i = 0; i < views.size(); ++i) {
+        out << "{\"buffer\":0,\"byteOffset\":" << views[i].offset << ",\"byteLength\":" << views[i].length;
+        if (views[i].target) out << ",\"target\":" << views[i].target;
+        out << '}' << (i + 1 < views.size() ? ",\n" : "\n");
+    }
+    out << "],\n\"buffers\":[{\"byteLength\":" << buffer.size()
+        << ",\"uri\":\"data:application/octet-stream;base64," << base64(buffer) << "\"}]\n}\n";
+    return static_cast<bool>(out);
 }
 
 // RESULT.DAT uses the same static vertex/normal/primitive layout as the
@@ -295,30 +698,18 @@ bool exportStaticTexturedObj(const std::vector<unsigned char>& b, std::uint32_t 
     for (std::size_t i = 0; i < quads; ++i) if (!writeFace(q + i * 16, 4)) return false;
     return static_cast<bool>(out);
 }
-
-bool readClip3Frame0Rotations(const std::vector<unsigned char>& b, std::uint32_t base,
-                              std::vector<std::array<std::int16_t, 3>>& rotations) {
-    if (b.size() < 20) return false;
-    const std::size_t quadData = u32(b, 12) - base;
-    const std::size_t animationTable = quadData + u16(b, 18) * 16;
-    constexpr std::size_t clip = 3;
-    if (animationTable + (clip + 2) * 4 > b.size()) return false;
-    const std::uint32_t startAddress = u32(b, animationTable + clip * 4);
-    const std::uint32_t endAddress = u32(b, animationTable + (clip + 1) * 4);
-    if (startAddress < base || endAddress < startAddress) return false;
-    const std::size_t start = startAddress - base, end = endAddress - base;
-    // These clips contain 0x88-byte frames.  Clip 3 has its first frame at
-    // +0x20; its first 19 triples are the per-group Euler rotations.
-    if (start + 0x20 + 19 * 6 > end || u32(b, start) == 0) return false;
-    rotations.clear();
-    for (std::size_t group = 0; group < 19; ++group) {
-        const std::size_t o = start + 0x20 + group * 6;
-        rotations.push_back({static_cast<std::int16_t>(u16(b, o)),
-                             static_cast<std::int16_t>(u16(b, o + 2)),
-                             static_cast<std::int16_t>(u16(b, o + 4))});
-    }
-    return true;
 }
+
+void DC2ModelExtractor::setAnimationOptions(const dc2::AnimationOptions& options) {
+    animationOptions = options;
+}
+
+void DC2ModelExtractor::setSaveArchiveEntries(bool enabled) {
+    saveArchiveEntries = enabled;
+}
+
+void DC2ModelExtractor::setSourceDirectory(const std::string& directory) {
+    sourceDirectory = directory;
 }
 
 int DC2ModelExtractor::extract(const std::string& filename) {
@@ -326,21 +717,32 @@ int DC2ModelExtractor::extract(const std::string& filename) {
     if (!input) return 1;
     const bool isResult = std::filesystem::path(filename).filename() == "RESULT.DAT";
     std::uint32_t offset = sector;
-    unsigned modelNumber = 0;
+    unsigned modelNumber = 0, blockNumber = 0;
     unsigned resultTextureNumber = 0;
     std::vector<unsigned char> pendingResultTexture;
+    std::vector<unsigned char> pendingModelTexture;
+    std::uint32_t pendingModelTextureAddress = 0;
+    unsigned modelTextureNumber = 0;
+    std::vector<std::pair<std::uint32_t, std::string>> modelTextures;   // (VRAM address, PNG)
     for (std::uint32_t entryOffset = 0; entryOffset < sector; entryOffset += 0x20) {
         Entry entry{};
         input.seekg(entryOffset);
         input.read(reinterpret_cast<char*>(&entry), sizeof(entry));
         if (!input) return 1;
         if (std::memcmp(&entry.type, "dummy header    ", 16) == 0) break;
-        if (isResult && entry.type == 6) {
+        // PC and PlayStation files share this container. The PlayStation version stores
+        // compressed textures as type 8 (PC: 6) and model blocks as type 7 at a RAM address
+        // (PC: type 5 at 0x6xxxxx); its other type-7 blocks are program code.
+        const bool compressedTexture = entry.type == 6 || entry.type == 8;
+        const bool modelBlock = entry.type == 5 || (entry.type == 7 && (entry.address & 0x80000000u));
+        if (isResult && compressedTexture) {
             std::vector<unsigned char> packed(entry.size);
             input.seekg(offset);
             input.read(reinterpret_cast<char*>(packed.data()), packed.size());
             std::vector<unsigned char> unpacked;
-            if (input && decompress(packed, unpacked) && unpacked.size() == 0x8000) {
+            // PlayStation streams decode to a few bytes past the page; the page is the same.
+            if (input && decompress(packed, unpacked) && unpacked.size() >= 0x8000 && unpacked.size() <= 0x8010) {
+                unpacked.resize(0x8000);
                 pendingResultTexture = std::move(unpacked);
             } else {
                 pendingResultTexture.clear();
@@ -355,44 +757,96 @@ int DC2ModelExtractor::extract(const std::string& filename) {
                 ++resultTextureNumber;
             }
             pendingResultTexture.clear();
-        } else if (entry.type == 5) {
+        } else if (!isResult && entry.type == 1) {
+            // Character texture page; saved once its CLUT (the next entry) is read.
+            pendingModelTexture.assign(isModelTextureSize(entry.size) ? entry.size : 0, 0);
+            pendingModelTextureAddress = entry.address;
+            input.seekg(offset);
+            input.read(reinterpret_cast<char*>(pendingModelTexture.data()), pendingModelTexture.size());
+            if (!input) pendingModelTexture.clear();
+        } else if (!isResult && entry.type == 2 && !pendingModelTexture.empty()) {
+            std::vector<unsigned char> palette(entry.size);
+            input.seekg(offset);
+            input.read(reinterpret_cast<char*>(palette.data()), palette.size());
+            const std::string textureName = filename + ".texture." + std::to_string(modelTextureNumber) + ".png";
+            if (input && saveModelTexture(pendingModelTexture, palette, textureName)) {
+                std::cout << "[INFO] Saved model texture page: " << textureName << '\n';
+                modelTextures.emplace_back(pendingModelTextureAddress, textureName);
+                ++modelTextureNumber;
+            }
+            pendingModelTexture.clear();
+        } else if (modelBlock) {
             std::vector<unsigned char> packed(entry.size);
             input.seekg(offset);
             input.read(reinterpret_cast<char*>(packed.data()), packed.size());
             if (!input) return 1;
-            const std::string stem = filename + ".model." + std::to_string(modelNumber++);
             std::vector<unsigned char> unpacked;
-            if (decompress(packed, unpacked)) {
-                std::cout << "[INFO] Extracted DC2 model " << stem << " (" << packed.size() << " -> " << unpacked.size() << " bytes, load 0x" << std::hex << entry.address << std::dec << ")\n";
-                if (isResult) {
-                    if (exportStaticTexturedObj(unpacked, entry.address, stem + ".obj")) {
-                        std::cout << "[INFO] Saved RESULT static mesh OBJ: " << stem << ".obj\n";
-                    } else {
-                        std::cout << "[WARNING] RESULT type-5 block did not match the confirmed static mesh layout.\n";
-                    }
-                    offset += align(entry.size);
-                    continue;
-                }
-                std::ofstream(stem + ".compressed", std::ios::binary).write(reinterpret_cast<const char*>(packed.data()), packed.size());
-                std::ofstream(stem + ".decompressed", std::ios::binary).write(reinterpret_cast<const char*>(unpacked.data()), unpacked.size());
-                if (exportExperimentalObj(unpacked, entry.address, stem + ".experimental.obj")) {
-                    std::cout << "[INFO] Saved experimental geometry OBJ: " << stem << ".experimental.obj\n";
-                }
-                if (exportExperimentalObj(unpacked, entry.address, stem + ".experimental.joint-translation.obj", true)) {
-                    std::cout << "[INFO] Saved joint-translation OBJ candidate: " << stem << ".experimental.joint-translation.obj\n";
-                }
-                std::vector<std::array<std::int16_t, 3>> rotations;
-                if (readClip3Frame0Rotations(unpacked, entry.address, rotations) &&
-                    exportExperimentalObj(unpacked, entry.address, stem + ".experimental.pose-clip3-frame0.obj", true, &rotations, true)) {
-                    std::cout << "[INFO] Saved pose OBJ candidate (clip 3, frame 0): " << stem << ".experimental.pose-clip3-frame0.obj\n";
-                }
-                if (readClip3Frame0Rotations(unpacked, entry.address, rotations) &&
-                    exportExperimentalObj(unpacked, entry.address, stem + ".experimental.pose-clip3-frame0-hierarchy.obj", true, &rotations, true, true)) {
-                    std::cout << "[INFO] Saved hierarchy pose OBJ candidate (clip 3, frame 0): " << stem << ".experimental.pose-clip3-frame0-hierarchy.obj\n";
-                }
-            } else {
-                std::cout << "[WARNING] Extracted type-5 block but DC2 LZSS decoding failed: " << stem << '\n';
+            if (!decompress(packed, unpacked)) {
+                std::cout << "[WARNING] LZSS decoding failed for the block loaded at 0x" << std::hex
+                          << entry.address << std::dec << '\n';
+                offset += align(entry.size);
+                continue;
             }
+            const std::string blockStem = filename + ".block." + std::to_string(blockNumber++);
+            if (saveArchiveEntries) {
+                std::ofstream(blockStem + ".compressed", std::ios::binary).write(reinterpret_cast<const char*>(packed.data()), packed.size());
+                std::ofstream(blockStem + ".decompressed", std::ios::binary).write(reinterpret_cast<const char*>(unpacked.data()), unpacked.size());
+            }
+            if (isResult) {
+                const std::string stem = filename + ".model." + std::to_string(modelNumber++);
+                if (exportStaticTexturedObj(unpacked, entry.address, stem + ".obj")) {
+                    std::cout << "[INFO] Saved RESULT static mesh OBJ: " << stem << ".obj\n";
+                } else {
+                    std::cout << "[WARNING] RESULT model block did not match the confirmed static mesh layout.\n";
+                }
+                offset += align(entry.size);
+                continue;
+            }
+            // A block can hold more than one model (E32 carries a second rig), so look for
+            // every model header: its vertex pointer points just past its own part records.
+            unsigned found = 0;
+            for (std::size_t o = 0; o + 0x30 <= unpacked.size(); o += 4) {
+                const std::uint16_t parts = u16(unpacked, o + 0x14);
+                if (!parts || parts > 256 || u32(unpacked, o) < entry.address ||
+                    u32(unpacked, o) - entry.address != o + 0x1C + 0x14 * parts) continue;
+                std::vector<unsigned char> block(unpacked.begin() + o, unpacked.end());
+                const std::uint32_t base = entry.address + static_cast<std::uint32_t>(o);
+                CharacterModel model;
+                if (!parseCharacterModel(block, base, model)) continue;
+                ++found;
+                const std::string stem = filename + ".model." + std::to_string(modelNumber++);
+                std::cout << "[INFO] Found character model " << stem << " (" << parts << " parts, loaded at 0x"
+                          << std::hex << base << std::dec << ")\n";
+                // Use the page the model's tpage points at, from this file or its companion.
+                const std::uint32_t pageAddress = modelTexturePageAddress(block);
+                std::string modelTexture;
+                for (const auto& [address, name] : modelTextures)
+                    if (address == pageAddress) modelTexture = name;
+                if (modelTexture.empty()) {
+                    const auto companion = companionTextureFile(filename);
+                    const std::string textureName = filename + ".texture." + std::to_string(modelTextureNumber) + ".png";
+                    if (!companion.empty() && saveModelTextureFrom(companion, pageAddress, textureName)) {
+                        std::cout << "[INFO] Saved model texture page from " << companion.filename().string() << ": " << textureName << '\n';
+                        modelTextures.emplace_back(pageAddress, textureName);
+                        ++modelTextureNumber;
+                        modelTexture = textureName;
+                    } else {
+                        std::cout << "[INFO] The texture page this model uses is not in this file; the game loads it from "
+                                     "another file (see the README). Exporting untextured.\n";
+                    }
+                }
+                if (exportCharacterObj(block, base, stem + ".obj", modelTexture))
+                    std::cout << "[INFO] Saved character model OBJ (bind pose): " << stem << ".obj\n";
+                if (exportCharacterGltf(block, base, stem + ".gltf", modelTexture))
+                    std::cout << "[INFO] Saved rigged character model glTF: " << stem << ".gltf\n";
+                // Continue after this model's mesh: later models and animations follow it.
+                const std::size_t meshEnd = u32(block, 12) - base + std::size_t(u16(block, 18)) * 16;
+                if (meshEnd >= 0x30) o = (o + meshEnd + 3) / 4 * 4 - 4;
+            }
+            if (!found)
+                std::cout << "[INFO] The block loaded at 0x" << std::hex << entry.address << std::dec
+                          << (entry.type == 7 ? " is program code or other data" : " holds no character model")
+                          << ", not a model\n";
         }
         offset += align(entry.size);
     }

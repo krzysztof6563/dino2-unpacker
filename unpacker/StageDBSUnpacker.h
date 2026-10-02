@@ -3,6 +3,7 @@
 
 #include <cstring>
 #include "unpacker.h"
+#include "MDECDecoder.h"
 #include <vector>
 #include <QPixmap>
 #include <QString>
@@ -21,11 +22,14 @@ class StageDBSUnpacker : public Unpacker {
         QVector<QRgb> colors;
 
     private:
+        static constexpr int BACKGROUND_WIDTH = 320;
+        static constexpr int BACKGROUND_HEIGHT = 240;
         const int JPEG_START_LENGTH = 12;
         const unsigned char JPEG_START[12] = {0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01};
         std::vector<size_t> jpegStartPoints;
 
         bool isChunkJPEGStart(char* chunk);
+        int extractPlayStationBackgrounds();
 };
 
 #endif // StageDBSUnpacker_H
