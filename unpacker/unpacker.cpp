@@ -118,7 +118,11 @@ int Unpacker::extractImages(
         }
 
         if (rearrangeWidth && rearrangeHeight) {
-            this->rgb555Data = this->rearrangeChunks(rearrangeWidth, rearrangeHeight, rearrangeStart, this->rgb555Data);    
+            this->rgb555Data = this->rearrangeChunks(rearrangeWidth, rearrangeHeight, rearrangeStart, this->rgb555Data);
+        }
+        if (this->rgb555Data.size() < static_cast<size_t>(this->PNG_WIDTH) * this->PNG_HEIGHT) {
+            std::cout << "[ERROR] Not enough image data for a " << this->PNG_WIDTH << "x" << this->PNG_HEIGHT << " image\n";
+            continue;
         }
 
         char* palletteChunk = this->dechunker->getChunkAt(i*chunkSkip + chunkHeight + initialOffset);
@@ -166,6 +170,11 @@ std::vector<uint8_t> Unpacker::rearrangeChunks(int width, int height, int start,
     int chunkSize = this->dechunker->getChunkSize();
     int stop = width * height + start;
     std::vector<uint8_t> newData;
+    if (static_cast<size_t>(stop) * chunkSize > initialData.size()) {
+        // A layout larger than the data would read past its end.
+        std::cout << "[ERROR] Image layout " << width << "x" << height << " needs more data than the file holds\n";
+        return newData;
+    }
 
     for (size_t i = start; i < stop; i += width) { //rows of chunks for whole image
         for (size_t j = 0; j < 32; j++) // rows for chunk height

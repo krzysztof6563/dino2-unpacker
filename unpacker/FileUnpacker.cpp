@@ -8,7 +8,8 @@ FileUnpacker::FileUnpacker(std::string filename) : Unpacker (filename) {
 
 int FileUnpacker::unpack() {
     int numberOfchunks = this->dechunker->getNumberOfChunks();
-    this->extractImages(numberOfchunks / 7, 6, 0, 2, 4, 0);
+    // Each Dino File image is 128x96: 2x3 tiles of 64x32 (6 chunks), then its palette chunk.
+    this->extractImages(numberOfchunks / 7, 6, 0, 2, 3, 0);
 
     return 0;
 }

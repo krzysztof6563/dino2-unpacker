@@ -13,7 +13,8 @@ int WPUnpacker::unpack() {
         std::cout << "[INFO] No image in this file (PlayStation weapon program code)\n";
         return 0;
     }
-    this->PNG_HEIGHT = (this->dechunker->getNumberOfChunks()-2)*32;
+    // The image is the chunks before the palette (WP75A/79A/83A/84A have a model after it).
+    this->PNG_HEIGHT = (this->PALLETTE_CHUNK - 1) * 32;
     this->extractImages(1, this->PALLETTE_CHUNK - 1, 1);
 
     return 1;

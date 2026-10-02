@@ -7,7 +7,8 @@ Subscr6Unpacker::Subscr6Unpacker(std::string filename) : Unpacker (filename) {
 
 int Subscr6Unpacker::unpack() {
     size_t totalChunks = this->dechunker->getNumberOfChunks(); 
-    this->PNG_HEIGHT = (this->dechunker->getNumberOfChunks()-2)*32;
+    // The image is the chunks before the palette; the PlayStation file has more data after it.
+    this->PNG_HEIGHT = (this->PALLETTE_CHUNK - 1) * 32;
     this->extractImages(1, this->PALLETTE_CHUNK - 1, 1);
 
     // auto palette = this->dechunker->getChunkAt(this->PALLETTE_CHUNK);

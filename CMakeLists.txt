@@ -24,4 +24,13 @@ if(BUILD_TESTING)
     if(E30_TEST_BLOCK)
         add_test(NAME e30_animation_decoder COMMAND animation_decoder_test "${E30_TEST_BLOCK}")
     endif()
+
+    add_executable(integration_e30 tests/integration_e30.cpp)
+    target_link_libraries(integration_e30 Qt6::Core)
+    set(E30_TEST_DAT "" CACHE FILEPATH "User-supplied E30.DAT")
+    set(E30_TEST_REFERENCE "" CACHE FILEPATH "Optional reference E30 glTF/GLB export")
+    if(E30_TEST_DAT)
+        add_test(NAME e30_integration COMMAND integration_e30 $<TARGET_FILE:${PROJECT_NAME}>
+                 "${E30_TEST_DAT}" ${E30_TEST_REFERENCE})
+    endif()
 endif()

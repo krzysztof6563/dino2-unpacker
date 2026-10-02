@@ -162,9 +162,17 @@ cmake --build build --config Release
 `build-windows.cmd` wraps these two commands. Run `windeployqt` on the executable to collect
 the Qt DLLs when distributing a build.
 
-`tests/animation_decoder.cpp` checks the animation decoder against your own E30 data: export
-`E30.DAT` with `--save-chunks`, then pass `E30.DAT.block.0.decompressed` to the test (or set
-`E30_TEST_BLOCK` when configuring CMake and run `ctest`).
+Two tests use your own E30 data (no game files are included):
+
+- `animation_decoder_test` checks the animation decoder: export `E30.DAT` with `--save-chunks`,
+  then pass `E30.DAT.block.0.decompressed` to it.
+- `integration_e30` runs the unpacker end to end:
+  `integration_e30 dino2-unpacker.exe E30.DAT [REFERENCE.gltf]`. It checks the clip, joint and
+  key counts and every option, and, given a reference export, that the geometry, skin and every
+  rotation key match it.
+
+Set `E30_TEST_BLOCK`, `E30_TEST_DAT` and optionally `E30_TEST_REFERENCE` when configuring CMake
+to run both with `ctest`.
 
 
 ## AUTHOR AND CREDITS
