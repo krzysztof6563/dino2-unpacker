@@ -15,7 +15,7 @@ Utility for extracting data from Dino Crisis 2
 | CORE\*.DAT   | 🔨        | WAVE files (DONE), RGB555 textures                                                               |
 | DEMO\*.TRG   | ❌        |                                                                                                  |
 | DOOR\*.DAT   | 🔨        | Extracts textures and soudns and most of 3d models (excpetion is DOOR1900.DAT)                   |
-| E\*.DAT      | 🔨        | Textured model as OBJ and rigged glTF (DONE), texture page PNG (DONE), animations                |
+| E\*.DAT      | ✅        | Textured model as OBJ and rigged glTF (DONE), texture page PNG (DONE), animations (DONE)         |
 | ENDING.DAT   | ✅        | WAVE files                                                                                       |
 | ENTRY.DAT    | 🔨        | Dino colliseum portraits, some data after                                                        |
 | FILE.DAT     | ✅        | Dino File images stored as RGB555 with pallette                                                  |
@@ -44,8 +44,22 @@ Utility for extracting data from Dino Crisis 2
 | TITLE.DAT    | ✅        | WAVE files, maybe something else hides here                                                      |
 | TITLE2.DAT   | ✅        | WAVE files, maybe something else hides here                                                      |
 | WARNING.DAT  | ❌        |                                                                                                  |
-| WEP\_\*.DAT  | 🔨        | WAVE files (DONE), textured model as OBJ and rigged glTF (DONE), texture page PNG (DONE)         |
+| WEP\_\*.DAT  | ✅        | WAVE files (DONE), textured model as OBJ and rigged glTF (DONE), texture page PNG (DONE), animations (DONE)         |
 | WP\*.DAT     | 🔨        | Saves images as PNGs, additional data after images for 75A, 79A, 83A, 84A                        |
+
+
+## ENEMY ANIMATION COVERAGE
+
+Compatible animation export was checked for:
+
+`E00.DAT`, `E10.DAT`, `E20.DAT`, `E30.DAT`, `E31.DAT`, `E32.DAT`, `E40.DAT`, `E50.DAT`, `E60.DAT`, `E70.DAT`, `E80.DAT`, `E90.DAT` and `EA0.DAT`.
+
+`E32.DAT` contains an additional embedded rig, which exports separately with 17 compatible clips. Each exported model uses its own hierarchy and joint count.
+
+The decoder handles pointer tables, repeated motion pointers, empty slots, multiple record sizes, aligned or packed joint rotations, and validated sequential records. A different-rig record no longer causes all compatible clips to be discarded.
+
+Numeric names such as `Clip_00` preserve source indices. Behavior names such as idle, walk, attack and death are not guessed.
+
 
 ## CHARACTER MODEL TEXTURES
 
@@ -63,17 +77,61 @@ its own file:
   enemy page, which the room files (SC\*.DAT, ST502.DAT) load. It differs from room to room,
   so there is no single right file, and these two models are exported untextured.
 
-## AUTHOR
 
-Krzysztof Michalski
+## KNOWN LIMITATIONS
+
+- Some secondary motion records remain unbound because their target rig is unverified.
+- Multi-actor scenes can contain a shared motion library for actors with the same joint count. Exact original actor/sequence assignments remain unverified.
+- Exact engine playback timing, final-key hold, interpolation and event metadata remain unverified.
+- Some archive payloads are retained raw rather than converted to a complete asset format.
+- Dedicated MP3 detection/decoding and many menu, screen and map formats remain unresolved.
+- Some texture pages come from other archives and are not selected automatically.
+- The tested scope is Dino Crisis 2 PC. Dino Crisis 1 and console formats are not established as supported.
+- This build does not claim universal decoding of every possible DAT or animation format.
+
+
+## COMMAND-LINE USAGE
+
+```bat
+dino2-unpacker.exe --output-dir=Extracted --save-chunks "C:\Game\Data"
+dino2-unpacker.exe --output-dir=Extracted E30.DAT
+dino2-unpacker.exe --in-place --output-dir=Extracted E80.DAT
+dino2-unpacker.exe --animation-tps=30 --output-dir=Extracted E30.DAT
+dino2-unpacker.exe --no-animations --output-dir=Extracted E30.DAT
+dino2-unpacker.exe --help
+```
+
+
+## AUTHOR AND CREDITS
+
+Original author:
+
+Krzysztof Michalski  
 https://github.com/krzysztof6563
+
+Underlying fork/build:
+
+DexeTech/dino2-unpacker  
+https://github.com/DexeTech/dino2-unpacker
+
+Animation/collection extension:
+
+Unofficial modified build, October 1, 2026. Development used AI-assisted coding and binary analysis; the project user verified the original E30 animation recovery in Blender. Original authors retain credit for their work. Existing copyright notices are retained.
+
 
 ## LICENSE
 
 GPL-3.0 License
 https://www.gnu.org/licenses/gpl-3.0.html
 
+
 ## TODO
 
-- add global detection and extraction of WAVE and MP3 FILES:
-  x - search for 0b11111111111 string? - start of mpeg frame
+- Resolve target rigs for remaining secondary motion records.
+- Verify original actor/sequence assignment in multi-actor scenes.
+- Compare recovered playback timing, interpolation and final-frame hold with the game.
+- Decode animation event metadata and establish behavior labels from evidence.
+- Add dedicated MP3 detection/extraction and decoding where appropriate.
+- Expand menu, screen, map and other non-character asset conversion.
+- Verify or restore legacy non-DAT workflows before claiming support for them.
+- Test additional game versions and formats, recording failures and partial recovery explicitly.
