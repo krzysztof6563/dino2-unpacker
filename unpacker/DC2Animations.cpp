@@ -75,8 +75,12 @@ AnimationClip decodeRecord(const std::vector<unsigned char>& b, std::size_t star
     for (std::size_t fi = 0; fi < frames; ++fi) {
         const auto frame = start + 20 + fi * stride;
         clip.times.push_back(float(word(b, frame) / options.ticksPerSecond));
-        clip.rootOffsets.push_back({signedWord(b, frame + 10) * .001f,
-            -signedWord(b, frame + 12) * .001f, -signedWord(b, frame + 14) * .001f});
+        clip.rootPositions.push_back({signedWord(b, frame + 4) * .001f,
+            -signedWord(b, frame + 6) * .001f, -signedWord(b, frame + 8) * .001f});
+        // Movement through the world is horizontal: the game keeps characters on the floor,
+        // and adding the stored vertical value would sink a leaping E10 two metres underground.
+        clip.rootOffsets.push_back({signedWord(b, frame + 10) * .001f, 0.0f,
+            -signedWord(b, frame + 14) * .001f});
         for (std::size_t j = 0; j < joints; ++j) {
             auto q = quaternion(b, frame + 16 + 6 * j);
             auto& track = clip.rotations[j];

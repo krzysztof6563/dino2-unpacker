@@ -12,12 +12,20 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <sstream>
+#include <iomanip>
 
 #include <QColor>
 #include <QImage>
 #include <QVector>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonDocument>
 
 namespace {
+dc2::AnimationOptions animationOptions;
+std::filesystem::path sourceDirectory;      // where companion files are looked for as well
+bool saveArchiveEntries = false;
 constexpr std::uint32_t sector = 0x800;
 struct Entry { std::uint32_t type, size, address, reserved; };
 std::uint32_t align(std::uint32_t n) { return (n + sector - 1) & ~(sector - 1); }
@@ -174,8 +182,10 @@ std::filesystem::path companionTextureFile(const std::string& filename) {
     std::string name = path.filename().string();
     std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return std::toupper(c); });
     if (name.size() != 12 || name.compare(0, 5, "WEP_P") != 0 || name.compare(8, 4, ".DAT") != 0) return {};
-    const std::filesystem::path companion = path.parent_path() / ("WP" + name.substr(5, 1) + name.substr(7, 1) + "A.DAT");
-    return std::filesystem::exists(companion) ? companion : std::filesystem::path();
+    const std::string companionName = "WP" + name.substr(5, 1) + name.substr(7, 1) + "A.DAT";
+    for (const auto& dir : {path.parent_path(), sourceDirectory})
+        if (!dir.empty() && std::filesystem::exists(dir / companionName)) return dir / companionName;
+    return {};
 }
 
 bool writeModelMaterial(const std::string& objName, const std::string& textureName) {
@@ -196,6 +206,7 @@ bool decompress(const std::vector<unsigned char>& in, std::vector<unsigned char>
     while (src < in.size()) {
         unsigned flags = in[src++] | 0x100;
         for (int bit = 0; bit < 8 && src < in.size(); ++bit, flags >>= 1) {
+            if (out.size() > 128 * 1024 * 1024) return false;
             if (flags & 1) { out.push_back(in[src++]); continue; }
             if (src + 1 >= in.size()) return false;
             unsigned lo = in[src++], hi = in[src++];
@@ -230,7 +241,8 @@ std::uint32_t u32(const std::vector<unsigned char>& b, std::size_t o) {
 // chain) plus its local coordinates; in this bind pose the feet of E10/E40 sit exactly on
 // y = 0.  The PlayStation space is y-down, so the OBJ is rotated 180 degrees about X.
 // Animations (after the quad table in E files; at +0x3800 behind 0xCD padding in WEP files)
-// are 0x88-byte frames: u16 time, u16 duration, s16 root x, y, z, three shorts of
+// use a 16-byte frame header plus 6 bytes per joint (0x88 for E30's 20 joints):
+// u16 time, u16 duration, s16 root x, y, z, three shorts of
 // accumulated root motion, then one s16 x, y, z rotation (4096 = 360 degrees) per part.
 // The primitives wind clockwise seen from outside (95% of faces oppose their vertex
 // normals; the rest are deliberate back faces such as the inside of the mouth), so both
@@ -467,6 +479,100 @@ bool exportCharacterGltf(const std::vector<unsigned char>& b, std::uint32_t base
     addView(indices.data(), indices.size() * 4, 34963);       // ELEMENT_ARRAY_BUFFER
     addView(inverseBind.data(), inverseBind.size() * 4, 0);
 
+    std::string motionReason;
+    dc2::AnimationDiagnostics diagnostics;
+    const auto clips = dc2::decodeAnimations(b, base, m.parts.size(), animationOptions, motionReason, &diagnostics);
+    if (!motionReason.empty()) std::cout << "[WARNING] " << name << ": " << motionReason << '\n';
+    QJsonObject report;
+    report["model"] = QString::fromStdString(std::filesystem::path(name).filename().string());
+    report["joint_count"] = int(m.parts.size());
+    report["exported_clips"] = int(clips.size());
+    report["layout"] = QString::fromStdString(diagnostics.layout);
+    report["assumed_ticks_per_second"] = animationOptions.ticksPerSecond;
+    report["in_place"] = animationOptions.inPlace;
+    report["note"] = QString::fromStdString(motionReason);
+    report["validation"] = "Binary/timeline validation; new models require visual playback verification";
+    QJsonArray records;
+    for (const auto& r : diagnostics.records) {
+        QJsonObject item;
+        item["source_index"] = int(r.index);
+        item["source_offset"] = double(r.offset);
+        item["frames"] = double(r.frames);
+        item["record_bytes"] = double(r.stride);
+        item["status"] = QString::fromStdString(r.status);
+        records.append(item);
+    }
+    report["records"] = records;
+    const auto reportBytes = QJsonDocument(report).toJson();
+    std::ofstream(name + ".animations.json", std::ios::binary).write(reportBytes.constData(), reportBytes.size());
+    std::vector<std::string> motionAccessors;
+    std::ostringstream animationJson;
+    animationJson.precision(9);
+    if (!clips.empty()) animationJson << "\"animations\":[";
+    for (std::size_t ci = 0; ci < clips.size(); ++ci) {
+        const auto& clip = clips[ci];
+        const auto addMotionAccessor = [&](const std::vector<float>& values, std::size_t width,
+                                           const char* type, bool time = false) {
+            const std::size_t index = 7 + motionAccessors.size();
+            const std::size_t view = views.size();
+            addView(values.data(), values.size() * sizeof(float), 0);
+            std::ostringstream a;
+            a.precision(9);
+            a << "{\"bufferView\":" << view << ",\"componentType\":5126,\"count\":"
+              << values.size() / width << ",\"type\":\"" << type << '\"';
+            if (time) a << ",\"min\":[" << values.front() << "],\"max\":[" << values.back() << ']';
+            a << '}';
+            motionAccessors.push_back(a.str());
+            return index;
+        };
+        const auto time = addMotionAccessor(clip.times, 1, "SCALAR", true);
+        std::vector<std::size_t> outputs;
+        for (const auto& track : clip.rotations) {
+            std::vector<float> values;
+            for (const auto& rotation : track) values.insert(values.end(), rotation.begin(), rotation.end());
+            outputs.push_back(addMotionAccessor(values, 4, "VEC4"));
+        }
+        // Each frame stores the first root's own position (the body's height and sway, which
+        // replaces its bind offset) and the cumulative movement through the world; --in-place
+        // keeps the first and drops the second.
+        std::vector<std::size_t> roots;
+        bool firstRoot = true;
+        for (std::size_t j = 0; j < m.parts.size(); ++j) {
+            if (m.parts[j].parent >= 0) continue;
+            const auto bind = toGltf(m.parts[j].offset);
+            std::vector<float> values;
+            for (std::size_t f = 0; f < clip.rootOffsets.size(); ++f)
+                for (int k = 0; k < 3; ++k)
+                    values.push_back((firstRoot ? clip.rootPositions[f][k] : bind[k]) +
+                                     (animationOptions.inPlace ? 0.0f : clip.rootOffsets[f][k]));
+            firstRoot = false;
+            roots.push_back(j);
+            outputs.push_back(addMotionAccessor(values, 3, "VEC3"));
+        }
+        animationJson << (ci ? "," : "") << "{\"name\":\"Clip_" << std::setfill('0')
+            << std::setw(2) << clip.sourceIndex << "\",\"extras\":{\"sourceFrameCount\":"
+            << clip.times.size() << ",\"sourceOffset\":" << clip.sourceOffset
+            << ",\"assumedTicksPerSecond\":" << animationOptions.ticksPerSecond
+            << "},\"samplers\":[";
+        for (std::size_t j = 0; j < outputs.size(); ++j)
+            animationJson << (j ? "," : "") << "{\"input\":" << time << ",\"output\":"
+                << outputs[j] << ",\"interpolation\":\"LINEAR\"}";
+        animationJson << "],\"channels\":[";
+        for (std::size_t j = 0; j < outputs.size(); ++j) {
+            const bool rotation = j < m.parts.size();
+            const std::size_t node = rotation ? j : roots[j - m.parts.size()];
+            animationJson << (j ? "," : "") << "{\"sampler\":" << j << ",\"target\":{\"node\":"
+                << node << ",\"path\":\"" << (rotation ? "rotation" : "translation") << "\"}}";
+        }
+        animationJson << "]}";
+    }
+    if (!clips.empty()) {
+        animationJson << "],\n";
+        std::cout << "[INFO] Exporting " << clips.size() << " animation clips at "
+                  << animationOptions.ticksPerSecond << " assumed ticks/second"
+                  << (animationOptions.inPlace ? " (in place)" : " (root motion)") << '\n';
+    }
+
     std::ofstream out(name, std::ios::trunc);
     if (!out) return false;
     out.precision(9);
@@ -519,7 +625,9 @@ bool exportCharacterGltf(const std::vector<unsigned char>& b, std::uint32_t base
         << "{\"bufferView\":3,\"componentType\":5123,\"count\":" << count << ",\"type\":\"VEC4\"},\n"
         << "{\"bufferView\":4,\"componentType\":5126,\"count\":" << count << ",\"type\":\"VEC4\"},\n"
         << "{\"bufferView\":5,\"componentType\":5125,\"count\":" << indices.size() << ",\"type\":\"SCALAR\"},\n"
-        << "{\"bufferView\":6,\"componentType\":5126,\"count\":" << partCount << ",\"type\":\"MAT4\"}\n],\n";
+        << "{\"bufferView\":6,\"componentType\":5126,\"count\":" << partCount << ",\"type\":\"MAT4\"}";
+    for (const auto& accessor : motionAccessors) out << ",\n" << accessor;
+    out << "\n],\n" << animationJson.str();
     out << "\"bufferViews\":[\n";
     for (std::size_t i = 0; i < views.size(); ++i) {
         out << "{\"buffer\":0,\"byteOffset\":" << views[i].offset << ",\"byteLength\":" << views[i].length;
@@ -592,12 +700,24 @@ bool exportStaticTexturedObj(const std::vector<unsigned char>& b, std::uint32_t 
 }
 }
 
+void DC2ModelExtractor::setAnimationOptions(const dc2::AnimationOptions& options) {
+    animationOptions = options;
+}
+
+void DC2ModelExtractor::setSaveArchiveEntries(bool enabled) {
+    saveArchiveEntries = enabled;
+}
+
+void DC2ModelExtractor::setSourceDirectory(const std::string& directory) {
+    sourceDirectory = directory;
+}
+
 int DC2ModelExtractor::extract(const std::string& filename) {
     std::ifstream input(filename, std::ios::binary);
     if (!input) return 1;
     const bool isResult = std::filesystem::path(filename).filename() == "RESULT.DAT";
     std::uint32_t offset = sector;
-    unsigned modelNumber = 0;
+    unsigned modelNumber = 0, blockNumber = 0;
     unsigned resultTextureNumber = 0;
     std::vector<unsigned char> pendingResultTexture;
     std::vector<unsigned char> pendingModelTexture;
@@ -610,12 +730,19 @@ int DC2ModelExtractor::extract(const std::string& filename) {
         input.read(reinterpret_cast<char*>(&entry), sizeof(entry));
         if (!input) return 1;
         if (std::memcmp(&entry.type, "dummy header    ", 16) == 0) break;
-        if (isResult && entry.type == 6) {
+        // PC and PlayStation files share this container. The PlayStation version stores
+        // compressed textures as type 8 (PC: 6) and model blocks as type 7 at a RAM address
+        // (PC: type 5 at 0x6xxxxx); its other type-7 blocks are program code.
+        const bool compressedTexture = entry.type == 6 || entry.type == 8;
+        const bool modelBlock = entry.type == 5 || (entry.type == 7 && (entry.address & 0x80000000u));
+        if (isResult && compressedTexture) {
             std::vector<unsigned char> packed(entry.size);
             input.seekg(offset);
             input.read(reinterpret_cast<char*>(packed.data()), packed.size());
             std::vector<unsigned char> unpacked;
-            if (input && decompress(packed, unpacked) && unpacked.size() == 0x8000) {
+            // PlayStation streams decode to a few bytes past the page; the page is the same.
+            if (input && decompress(packed, unpacked) && unpacked.size() >= 0x8000 && unpacked.size() <= 0x8010) {
+                unpacked.resize(0x8000);
                 pendingResultTexture = std::move(unpacked);
             } else {
                 pendingResultTexture.clear();
@@ -648,33 +775,54 @@ int DC2ModelExtractor::extract(const std::string& filename) {
                 ++modelTextureNumber;
             }
             pendingModelTexture.clear();
-        } else if (entry.type == 5) {
+        } else if (modelBlock) {
             std::vector<unsigned char> packed(entry.size);
             input.seekg(offset);
             input.read(reinterpret_cast<char*>(packed.data()), packed.size());
             if (!input) return 1;
-            const std::string stem = filename + ".model." + std::to_string(modelNumber++);
             std::vector<unsigned char> unpacked;
-            if (decompress(packed, unpacked)) {
-                std::cout << "[INFO] Extracted DC2 model " << stem << " (" << packed.size() << " -> " << unpacked.size() << " bytes, load 0x" << std::hex << entry.address << std::dec << ")\n";
-                if (isResult) {
-                    if (exportStaticTexturedObj(unpacked, entry.address, stem + ".obj")) {
-                        std::cout << "[INFO] Saved RESULT static mesh OBJ: " << stem << ".obj\n";
-                    } else {
-                        std::cout << "[WARNING] RESULT type-5 block did not match the confirmed static mesh layout.\n";
-                    }
-                    offset += align(entry.size);
-                    continue;
+            if (!decompress(packed, unpacked)) {
+                std::cout << "[WARNING] LZSS decoding failed for the block loaded at 0x" << std::hex
+                          << entry.address << std::dec << '\n';
+                offset += align(entry.size);
+                continue;
+            }
+            const std::string blockStem = filename + ".block." + std::to_string(blockNumber++);
+            if (saveArchiveEntries) {
+                std::ofstream(blockStem + ".compressed", std::ios::binary).write(reinterpret_cast<const char*>(packed.data()), packed.size());
+                std::ofstream(blockStem + ".decompressed", std::ios::binary).write(reinterpret_cast<const char*>(unpacked.data()), unpacked.size());
+            }
+            if (isResult) {
+                const std::string stem = filename + ".model." + std::to_string(modelNumber++);
+                if (exportStaticTexturedObj(unpacked, entry.address, stem + ".obj")) {
+                    std::cout << "[INFO] Saved RESULT static mesh OBJ: " << stem << ".obj\n";
+                } else {
+                    std::cout << "[WARNING] RESULT model block did not match the confirmed static mesh layout.\n";
                 }
-                std::ofstream(stem + ".compressed", std::ios::binary).write(reinterpret_cast<const char*>(packed.data()), packed.size());
-                std::ofstream(stem + ".decompressed", std::ios::binary).write(reinterpret_cast<const char*>(unpacked.data()), unpacked.size());
+                offset += align(entry.size);
+                continue;
+            }
+            // A block can hold more than one model (E32 carries a second rig), so look for
+            // every model header: its vertex pointer points just past its own part records.
+            unsigned found = 0;
+            for (std::size_t o = 0; o + 0x30 <= unpacked.size(); o += 4) {
+                const std::uint16_t parts = u16(unpacked, o + 0x14);
+                if (!parts || parts > 256 || u32(unpacked, o) < entry.address ||
+                    u32(unpacked, o) - entry.address != o + 0x1C + 0x14 * parts) continue;
+                std::vector<unsigned char> block(unpacked.begin() + o, unpacked.end());
+                const std::uint32_t base = entry.address + static_cast<std::uint32_t>(o);
+                CharacterModel model;
+                if (!parseCharacterModel(block, base, model)) continue;
+                ++found;
+                const std::string stem = filename + ".model." + std::to_string(modelNumber++);
+                std::cout << "[INFO] Found character model " << stem << " (" << parts << " parts, loaded at 0x"
+                          << std::hex << base << std::dec << ")\n";
                 // Use the page the model's tpage points at, from this file or its companion.
-                const std::uint32_t pageAddress = modelTexturePageAddress(unpacked);
+                const std::uint32_t pageAddress = modelTexturePageAddress(block);
                 std::string modelTexture;
                 for (const auto& [address, name] : modelTextures)
                     if (address == pageAddress) modelTexture = name;
-                CharacterModel model;
-                if (modelTexture.empty() && parseCharacterModel(unpacked, entry.address, model)) {
+                if (modelTexture.empty()) {
                     const auto companion = companionTextureFile(filename);
                     const std::string textureName = filename + ".texture." + std::to_string(modelTextureNumber) + ".png";
                     if (!companion.empty() && saveModelTextureFrom(companion, pageAddress, textureName)) {
@@ -687,16 +835,18 @@ int DC2ModelExtractor::extract(const std::string& filename) {
                                      "another file (see the README). Exporting untextured.\n";
                     }
                 }
-                if (exportCharacterObj(unpacked, entry.address, stem + ".obj", modelTexture)) {
+                if (exportCharacterObj(block, base, stem + ".obj", modelTexture))
                     std::cout << "[INFO] Saved character model OBJ (bind pose): " << stem << ".obj\n";
-                    if (exportCharacterGltf(unpacked, entry.address, stem + ".gltf", modelTexture))
-                        std::cout << "[INFO] Saved rigged character model glTF: " << stem << ".gltf\n";
-                } else {
-                    std::cout << "[WARNING] Type-5 block is not a character model: " << stem << '\n';
-                }
-            } else {
-                std::cout << "[WARNING] Extracted type-5 block but DC2 LZSS decoding failed: " << stem << '\n';
+                if (exportCharacterGltf(block, base, stem + ".gltf", modelTexture))
+                    std::cout << "[INFO] Saved rigged character model glTF: " << stem << ".gltf\n";
+                // Continue after this model's mesh: later models and animations follow it.
+                const std::size_t meshEnd = u32(block, 12) - base + std::size_t(u16(block, 18)) * 16;
+                if (meshEnd >= 0x30) o = (o + meshEnd + 3) / 4 * 4 - 4;
             }
+            if (!found)
+                std::cout << "[INFO] The block loaded at 0x" << std::hex << entry.address << std::dec
+                          << (entry.type == 7 ? " is program code or other data" : " holds no character model")
+                          << ", not a model\n";
         }
         offset += align(entry.size);
     }

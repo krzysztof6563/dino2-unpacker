@@ -58,7 +58,7 @@ class UnpackerChooser {
             } else if (base.find("WEP_") != std::string::npos) {
                 return new WEPUnpacker(filename);
             } else if (base == "CORE.DAT" || base == "RESULT.DAT" ||
-                       isEnemyModelFile(base)) {
+                       base.rfind("KOF_", 0) == 0 || isEnemyModelFile(base)) {
                 return new ModelUnpacker(filename);
             } else {
                 return new DechunkerUnpacker(filename);

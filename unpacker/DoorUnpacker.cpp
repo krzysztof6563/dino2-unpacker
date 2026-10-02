@@ -340,7 +340,9 @@ int DoorUnpacker::unpack() {
         } else if (entry.type == 2 && paletteEntry == nullptr) {
             paletteEntry = &entry;
             paletteOffset = payloadOffset;
-        } else if (entry.type == 5 && modelEntry == nullptr) {
+        } else if ((entry.type == 5 || (entry.type == 7 && (entry.address & 0x80000000u))) &&
+                   modelEntry == nullptr) {
+            // The model block is type 5 on PC and type 7 (loaded at 0x80xxxxxx) on PlayStation.
             modelEntry = &entry;
             modelOffset = payloadOffset;
         }
@@ -348,7 +350,7 @@ int DoorUnpacker::unpack() {
     }
 
     if (modelEntry == nullptr) {
-        std::cout << "[ERROR] No type-5 model candidate found in DOOR archive.\n";
+        std::cout << "[ERROR] No model block found in DOOR archive.\n";
         return 1;
     }
 
@@ -360,7 +362,7 @@ int DoorUnpacker::unpack() {
     std::vector<unsigned char> decompressedModel;
     bool exportedObj = false;
     if (!decompressDc2Lzss(model, decompressedModel)) {
-        std::cout << "[WARNING] Type-5 payload did not decode as DC2 LZSS; skipping model export.\n";
+        std::cout << "[WARNING] Model block did not decode as DC2 LZSS; skipping model export.\n";
     } else {
         const int textureWidth = bitmapEntry == nullptr ? 0 : static_cast<int>((bitmapEntry->reserved & 0xffff) * 2);
         const int textureHeight = bitmapEntry == nullptr ? 0 : static_cast<int>(bitmapEntry->reserved >> 16);

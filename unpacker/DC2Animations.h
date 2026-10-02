@@ -15,7 +15,8 @@ struct AnimationClip {
     std::size_t sourceOffset = 0;
     std::vector<float> times;
     std::vector<std::vector<std::array<float, 4>>> rotations; // joint, key, XYZW
-    std::vector<std::array<float, 3>> rootOffsets;
+    std::vector<std::array<float, 3>> rootPositions;          // first root's position per key
+    std::vector<std::array<float, 3>> rootOffsets;            // cumulative world movement per key
 };
 struct MotionRecord {
     std::size_t index = 0, offset = 0, frames = 0, stride = 0;
